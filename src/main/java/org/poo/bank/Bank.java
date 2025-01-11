@@ -2,6 +2,7 @@ package org.poo.bank;
 
 import java.util.ArrayList;
 
+import org.poo.commerciants.Commerciant;
 import org.poo.converter.ConverterJson;
 import org.poo.converter.CurrencyConverter;
 import org.poo.users.Account;
@@ -17,7 +18,12 @@ import org.poo.fileio.CommandInput;
 public final class Bank {
     private static Bank instance;
     private final ArrayList<User> users = new ArrayList<>();
+    private final ArrayList<Commerciant> commerciants = new ArrayList<>();
     private final CurrencyConverter moneyConverter;
+
+    public ArrayList<Commerciant> getCommerciants() {
+        return commerciants;
+    }
 
     /**
      * Gets users.
@@ -41,7 +47,16 @@ public final class Bank {
         for (int i = 0; i < input.getUsers().length; i++) {
             this.users.add(new User(input.getUsers()[i].getFirstName(),
                     input.getUsers()[i].getLastName(),
-                    input.getUsers()[i].getEmail()));
+                    input.getUsers()[i].getEmail(),
+                    input.getUsers()[i].getBirthDate(),
+                    input.getUsers()[i].getOccupation()));
+        }
+        for (int i = 0; i < input.getCommerciants().length; i++) {
+            this.commerciants.add(new Commerciant(input.getCommerciants()[i].getCommerciant(),
+                    input.getCommerciants()[i].getId(),
+                    input.getCommerciants()[i].getAccount(),
+                    input.getCommerciants()[i].getType(),
+                    input.getCommerciants()[i].getCashbackStrategy()));
         }
         moneyConverter = CurrencyConverter.getInstance(input);
     }
@@ -244,6 +259,83 @@ public final class Bank {
         }
     }
 
+    public void upgradePlan(final CommandInput input) {
+        String newPlan = input.getNewPlanType();
+        String iban = input.getAccount();
+        int timestamp = input.getTimestamp();
+        int accountFound = 0;
+
+        for (User user : users) {
+            for (Account currentAccount : user.getAccounts()) {
+                if (currentAccount.getIban().equals(iban)) {
+                    String to = currentAccount.getCurrency();
+                    accountFound = 1;
+                    if (user.getPlan().equals(newPlan)) {
+                        // are deja planul asta
+                        return;
+                    } else if (user.getPlan().equals("gold")) {
+                        // nu poti da downgrade
+                        return;
+                    } else if (user.getPlan().equals("silver") && !newPlan.equals("gold")) {
+                        // nu poti da downgrade
+                        return;
+                    } else if (user.getPlan().equals("silver") && newPlan.equals("gold")) {
+                        // upgrade silver -> gold 250 RON
+                        double moneyToPay = getMoneyConverter().convert(250, "RON", to);
+                        //TODO s-ar putea sa trebuiasca sa verific balanta minima si sa pun comision
+                        if (currentAccount.getBalance() < moneyToPay) {
+                            // nu are destui bani
+                            return;
+                        } else {
+                            currentAccount.subtractMoney(moneyToPay);
+                            user.setPlan("gold");
+                            user.addUpgradePlanTransaction(timestamp, iban, newPlan);
+                            return;
+                        }
+                    } else if ((user.getPlan().equals("standard") || user.getPlan().equals("student"))
+                                && newPlan.equals("gold")) {
+                        // upgrade standard -> gold 350 RON
+                        double moneyToPay = getMoneyConverter().convert(350, "RON", to);
+//                        if (user.getPlan().equals("standard")) {// comision
+//                            moneyToPay = moneyToPay * 1.002;
+//                        }
+                        //TODO s-ar putea sa trebuiasca sa verific balanta minima si sa pun comision
+                        if (currentAccount.getBalance() < moneyToPay) {
+                            // nu are destui bani
+                            return;
+                        } else {
+                            currentAccount.subtractMoney(moneyToPay);
+                            user.setPlan("gold");
+                            user.addUpgradePlanTransaction(timestamp, iban, newPlan);
+                            return;
+                        }
+                    } else if ((user.getPlan().equals("standard") || user.getPlan().equals("student"))
+                                && newPlan.equals("silver")) {
+                        // upgrade standard -> silver 100 RON
+                        double moneyToPay = getMoneyConverter().convert(100, "RON", to);
+//                        if (user.getPlan().equals("standard")) { // comision
+//                            moneyToPay = moneyToPay * 1.002;
+//                        }
+                        //TODO s-ar putea sa trebuiasca sa verific balanta minima si sa pun comision
+                        if (currentAccount.getBalance() < moneyToPay) {
+                            // nu are destui bani
+                            return;
+                        } else {
+                            currentAccount.subtractMoney(moneyToPay);
+                            user.setPlan("silver");
+                            user.addUpgradePlanTransaction(timestamp, iban, newPlan);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        if (accountFound == 0) {
+            // nu exista contul
+            return;
+        }
+    }
+
     /**
      * Pay online int.
      *
@@ -259,6 +351,10 @@ public final class Bank {
         String email = input.getEmail();
         int found = 0;
 
+        if (amount == 0) {
+            return 0;
+        }
+
         for (User user : users) {
             if (user.getEmail().equals(email)) {
                 for (Account currentAccount : user.getAccounts()) {
@@ -268,11 +364,18 @@ public final class Bank {
                             found = 1;
                             String to = currentAccount.getCurrency();
                             double amountToBePayed = getMoneyConverter().convert(amount, from, to);
+                            double ronSpent = getMoneyConverter().convert(amount, from, "RON");
+                            double commision = user.checkCommision(amountToBePayed, ronSpent);
                             if (currentCard.getStatus().equals("frozen")) {
                                 user.addErrorTransaction(timestamp, "The card is frozen");
                                 return 0;
-                            } else if (currentAccount.getBalance() >= amountToBePayed) {
-                                currentAccount.subtractMoney(amountToBePayed);
+                            } else if (currentAccount.getBalance() >= (amountToBePayed + commision)) {
+                                // nu stiu daca e corect sa verific daca are bani si pt comision
+                                currentAccount.addMoneySpent(ronSpent);
+                                double cashback = currentAccount.checkForCashback(commerciant,
+                                        getCommerciants(), amountToBePayed, user.getPlan());
+                                currentAccount.subtractMoney(cashback + commision);
+                                currentAccount.addTransaction();
                                 user.addCardPaymentTransaction(timestamp, amountToBePayed,
                                         commerciant, currentAccount.getIban());
 
@@ -299,6 +402,126 @@ public final class Bank {
             return 2;
         }
         return 0;
+    }
+
+    public void withdrawSavings(final CommandInput input){
+        String iban = input.getAccount();
+        double amount = input.getAmount();
+        String from = input.getCurrency();
+        int timestamp = input.getTimestamp();
+        String ibanClassicAccount = " ";
+        String userEmail = " ";
+        int accountFound = 0;
+        int typeIsSavings = 0;
+        int hasMoney = 0;
+        double amountToPay = 0;
+
+        if (amount == 0) {
+            return; // nu retragi nimic
+        }
+
+        for (User user : users) {
+            for (Account currentAccount : user.getAccounts()) {
+                if (currentAccount.getIban().equals(iban)) {
+                    accountFound = 1;
+                    userEmail = user.getEmail();
+                    String to = currentAccount.getCurrency();
+                    amountToPay = getMoneyConverter().convert(amount, from, to);
+                    if (amountToPay <= currentAccount.getBalance()) {
+                        hasMoney = 1;
+                    }
+                    if (currentAccount.getType().equals("savings")) {
+                        typeIsSavings = 1;
+                    }
+                    if (user.verifyAge21(user.getBirthDate()) == 0) {
+                        user.addErrorTransaction(timestamp,
+                                "You don't have the minimum age required.");
+                        return;
+                    }
+                }
+            }
+        }
+        if (accountFound == 0) {
+            return;
+        }
+        for (User user : users) {
+            if (user.getEmail().equals(userEmail)) {
+                for (Account currentAccount : user.getAccounts()) {
+                    if (currentAccount.getType().equals("classic")
+                        && currentAccount.getCurrency().equals(from)) {
+                        ibanClassicAccount = currentAccount.getIban();
+                    }
+                    if (ibanClassicAccount.equals(" ")) {
+                        user.addErrorTransaction(timestamp, "You do not have a classic account.");
+                        return; // account is not classic or wrong currency
+                    }
+                    if (typeIsSavings == 0) {
+                        return; // given account is not of type savings
+                    }
+                    if (hasMoney == 0) {
+                        return;
+                    }
+                    currentAccount.addMoney(amount);
+                }
+            }
+        }
+        for (User user : users) {
+            for (Account currentAccount : user.getAccounts()) {
+                if (currentAccount.getIban().equals(iban)) {
+                    currentAccount.subtractMoney(amountToPay);
+                }
+            }
+        }
+    }
+
+    public void cashWithdrawal(final CommandInput input, final ConverterJson out){
+        String cardNr = input.getCardNumber();
+        String email = input.getEmail();
+        String location = input.getLocation();
+        double amount = input.getAmount();
+        int timestamp = input.getTimestamp();
+        int userFound = 0;
+        int cardFound = 0;
+
+        if (amount == 0) {
+            return; // nu retragi nimic
+        }
+
+        for (User user : users) {
+            if (user.getEmail().equals(email)) {
+                userFound = 1;
+                for (Account currentAccount : user.getAccounts()) {
+                    for (Card currentCard : currentAccount.getCards()) {
+                        if (currentCard.getCardNumber().equals(cardNr)) {
+                            cardFound = 1;
+                            if (currentCard.getStatus().equals("frozen")) {
+                                // cardu e inghetat
+                                return;
+                            }
+                            String to = currentAccount.getCurrency();
+                            double amountToBePayed = getMoneyConverter().convert(amount, "RON", to);
+                            double commision = user.checkCommision(amountToBePayed, amount);
+                            if (currentAccount.getBalance() >= (amountToBePayed + commision)) {
+                                // TODO s-ar putea sa trebuiasca sa verific balanta minima
+                                currentAccount.subtractMoney(amountToBePayed + commision);
+                                user.addCashWithdrawalTransaction(timestamp, amount);
+                                return;
+                            } else {
+                                // nu are bani
+                                user.addErrorTransaction(timestamp, "Insufficient funds");
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (cardFound == 0) {
+            out.printError(timestamp, "cashWithdrawal", "Card not found");
+        } else if (userFound == 0) {
+            out.printError(timestamp, "cashWithdrawal", "User not found");
+        }
     }
 
     /**
@@ -364,7 +587,8 @@ public final class Bank {
      * @param input the input
      * @return int
      */
-    public int sendMoney(final CommandInput input) {
+    public int sendMoney(final CommandInput input, final ConverterJson out) {
+        //TODO trebuie sa mai adaug cashback si aici daca transferu e catre un comerciant
         int timestamp = input.getTimestamp();
         String iban = input.getAccount();
         double amount = input.getAmount();
@@ -373,6 +597,10 @@ public final class Bank {
         int hasMoney = 1;
         int found = 0;
         String from = "RON"; // initialization but always  modifies before use
+
+        if (amount == 0) {
+            return 0; // nu retragi nimic
+        }
 
         for (User user : users) {
             for (Account currentAccount : user.getAccounts()) {
@@ -389,12 +617,15 @@ public final class Bank {
                     if (currentAccount.getIban().equals(iban)) {
                         found = 1;
                         from = currentAccount.getCurrency();
-                        if (currentAccount.getBalance() < amount) {
+                        double ronSpent = getMoneyConverter().convert(amount, from, "RON");
+                        double commision = user.checkCommision(amount, ronSpent);
+                        if (currentAccount.getBalance() < (amount + commision)) {
+                            // nu stiu daca e corect sa verific daca are bani si pt comision
                             user.addPaymentFailedTransaction(timestamp);
                             hasMoney = 0;
                         }
                         if (hasMoney == 1) {
-                            currentAccount.subtractMoney(amount);
+                            currentAccount.subtractMoney(amount + commision);
                             user.addMoneyTransferTransaction(input, "sent", from, amount);
                         }
                     }
@@ -414,6 +645,9 @@ public final class Bank {
                     }
                 }
             }
+        }
+        if (found == 0) {
+            out.printError(timestamp, "sendMoney", "User not found");
         }
         return 0;
     }
@@ -483,6 +717,8 @@ public final class Bank {
                         double balance = savingsAccount.getBalance();
                         double rate = savingsAccount.getInterestRate();
                         savingsAccount.addMoney(balance * rate);
+                        user.addInterestTransaction(input.getTimestamp(), balance * rate,
+                                currentAccount.getCurrency());
                     }
                 }
             }

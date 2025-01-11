@@ -2,6 +2,7 @@ package org.poo.users;
 
 import java.util.ArrayList;
 
+import org.poo.commerciants.Commerciant;
 import org.poo.fileio.CommandInput;
 import org.poo.users.transactions.Transaction;
 import org.poo.utils.Utils;
@@ -16,6 +17,11 @@ public class Account {
     private String alias;
     private double balance;
     private double minBalance;
+    private double moneySpent = 0;
+    private int nrOfTransactions = 0;
+    private int discountFood = 0;
+    private int discountClothes = 0;
+    private int discountTech = 0;
     private ArrayList<Card> cards = new ArrayList<>();
 
     /**
@@ -157,6 +163,54 @@ public class Account {
         this.minBalance = minBalance;
     }
 
+    public double getMoneySpent() {
+        return moneySpent;
+    }
+
+    public void setMoneySpent(double moneySpent) {
+        this.moneySpent = moneySpent;
+    }
+
+    public int getNrOfTransactions() {
+        return nrOfTransactions;
+    }
+
+    public void setNrOfTransactions(int nrOfTransactions) {
+        this.nrOfTransactions = nrOfTransactions;
+    }
+
+    public int getDiscountFood() {
+        return discountFood;
+    }
+
+    public void setDiscountFood(int discountFood) {
+        this.discountFood = discountFood;
+    }
+
+    public int getDiscountClothes() {
+        return discountClothes;
+    }
+
+    public void setDiscountClothes(int discountClothes) {
+        this.discountClothes = discountClothes;
+    }
+
+    public int getDiscountTech() {
+        return discountTech;
+    }
+
+    public void setDiscountTech(int discountTech) {
+        this.discountTech = discountTech;
+    }
+
+    public void addTransaction() {
+        this.nrOfTransactions++;
+    }
+
+    public void addMoneySpent(final double money) {
+        this.moneySpent += money;
+    }
+
     /**
      * Add money.
      *
@@ -207,5 +261,60 @@ public class Account {
         getCards().get(index).addCardCreationTransaction(input.getTimestamp(),
                 email, getIban(), transactions, description);
         getCards().remove(index);
+    }
+
+    public double checkForCashback (final String name, final ArrayList<Commerciant> commerciants,
+                                    final double amount, final String plan) {
+        String strategy = "";
+        String type = "";
+
+        for (Commerciant commerciant : commerciants) {
+            if (commerciant.getName().equals(name)) {
+                strategy = commerciant.getCashbackStrategy();
+                type = commerciant.getType();
+            }
+        }
+        if (strategy.equals("nrOfTransactions")) {
+            if (getNrOfTransactions() > 2 && getDiscountFood() == 0 && type.equals("Food")){
+                setDiscountFood(1);
+                return amount * 0.98;
+            }
+            if (getNrOfTransactions() > 5 && getDiscountClothes() == 0 && type.equals("Clothes")) {
+                setDiscountClothes(1);
+                return amount * 0.95;
+            }
+            if (getNrOfTransactions() > 10 && getDiscountTech() == 0 && type.equals("Tech")) {
+                setDiscountTech(1);
+                return amount * 0.9;
+            }
+        } else { // spendingThreshold
+            if (getMoneySpent() >= 500) {
+                //TODO S-ar putea sa trebuieasca sa resetez money spent
+                if (plan.equals("standard") || plan.equals("student")) {
+                    return amount * 0.9975;
+                } else if (plan.equals("silver")) {
+                    return amount * 0.995;
+                } else { // gold
+                    return amount * 0.993;
+                }
+            } else if (getMoneySpent() >= 300) {
+                if (plan.equals("standard") || plan.equals("student")) {
+                    return amount * 0.998;
+                } else if (plan.equals("silver")) {
+                    return amount * 0.996;
+                } else { // gold
+                    return amount * 0.9945;
+                }
+            } else if (getMoneySpent() >= 100) {
+                if (plan.equals("standard") || plan.equals("student")) {
+                    return amount * 0.999;
+                } else if (plan.equals("silver")) {
+                    return amount * 0.997;
+                } else { // gold
+                    return amount * 0.995;
+                }
+            }
+        }
+        return amount;
     }
 }

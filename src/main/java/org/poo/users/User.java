@@ -1,6 +1,8 @@
 package org.poo.users;
 
 import java.util.ArrayList;
+import java.time.LocalDate;
+import java.time.Period;
 
 import org.poo.fileio.CommandInput;
 import org.poo.users.transactions.*;
@@ -13,6 +15,9 @@ public class User {
     private String firstName;
     private String lastName;
     private String email;
+    private String birthDate;
+    private String ocupation;
+    private String plan;
     private ArrayList<Account> accounts = new ArrayList<>();
     private ArrayList<Transaction> transactions = new ArrayList<>();
 
@@ -23,10 +28,18 @@ public class User {
      * @param lastName  the last name
      * @param email     the email
      */
-    public User(final String firstName, final String lastName, final String email) {
+    public User(final String firstName, final String lastName, final String email,
+                final String birthDate, final String ocupation) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
+        this.birthDate = birthDate;
+        this.ocupation = ocupation;
+        if (ocupation.equals("student")){
+            this.plan = "student";
+        } else {
+            this.plan = "standard";
+        }
     }
 
     /**
@@ -119,6 +132,30 @@ public class User {
         this.transactions = transactions;
     }
 
+    public String getBirthDate() {
+        return birthDate;
+    }
+
+    public void setBirthDate(String birthDate) {
+        this.birthDate = birthDate;
+    }
+
+    public String getOcupation() {
+        return ocupation;
+    }
+
+    public void setOcupation(String ocupation) {
+        this.ocupation = ocupation;
+    }
+
+    public String getPlan() {
+        return plan;
+    }
+
+    public void setPlan(String plan) {
+        this.plan = plan;
+    }
+
     /**
      * Add account.
      *
@@ -143,6 +180,24 @@ public class User {
      */
     public void deleteAccount(final int index) {
         getAccounts().remove(index);
+    }
+
+    public int verifyAge21(final String birthDate) {
+        if (Period.between(LocalDate.parse(birthDate), LocalDate.now()).getYears() >= 21) {
+            return 1;
+        }
+        return 0;
+    }
+
+    public double checkCommision (final double amount, final double ronSpent) {
+        String plan = getPlan();
+
+        if (plan.equals("standard")) {
+            return amount * 0.002; // 0.2%
+        } else if (plan.equals("silver") && ronSpent >= 500) {
+            return amount * 0.001; // 0.1%
+        }
+        return 0;
     }
 
     /**
@@ -236,5 +291,17 @@ public class User {
                                                 final ArrayList<String> ibanList) {
         getTransactions().add(new SplitCardPayment(timestamp, amount,
                               splitAmount, currency, ibanList));
+    }
+
+    public void addUpgradePlanTransaction(final int timestamp, final String iban, final String plan) {
+        getTransactions().add(new UpgradePlan(timestamp, iban, plan));
+    }
+
+    public void addCashWithdrawalTransaction(final int timestamp, final double amount) {
+        getTransactions().add(new WithdrawCash(timestamp, amount));
+    }
+
+    public void addInterestTransaction(final int timestamp, final double amount, final String currency) {
+        getTransactions().add(new AddInterest(timestamp, amount, currency));
     }
 }

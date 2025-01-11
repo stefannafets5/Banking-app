@@ -85,10 +85,10 @@ public final class Main {
         ConverterJson out = ConverterJson.getInstance(output);
         Bank bank = Bank.getInstance(inputData);
 
-//        for (CommandInput input : inputData.getCommands()) {
-//            Command toExecute = CommandFactory.createCommand(bank, input, out);
-//            toExecute.execute();
-//        }
+        for (CommandInput input : inputData.getCommands()) {
+            Command toExecute = CommandFactory.createCommand(bank, input, out);
+            toExecute.execute();
+        }
 
         Utils.resetRandom();
         Bank.resetInstance();
