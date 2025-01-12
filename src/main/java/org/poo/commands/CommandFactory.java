@@ -41,6 +41,8 @@ public class CommandFactory {
             case "withdrawSavings" -> new WithdrawSavings(bank, input);
             case "upgradePlan" -> new UpgradePlan(bank, input);
             case "cashWithdrawal" -> new CashWithdrawal(bank, input, out);
+            case "acceptSplitPayment" -> new AcceptSplitPayment(bank, input);
+            case "rejectSplitPayment" -> new RejectSplitPayment(bank, input);
             default -> new TestCeva("nu e comanda");//throw new IllegalArgumentException("The command is not recognized");
         };
     }

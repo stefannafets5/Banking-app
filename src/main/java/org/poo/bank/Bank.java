@@ -5,10 +5,7 @@ import java.util.ArrayList;
 import org.poo.commerciants.Commerciant;
 import org.poo.converter.ConverterJson;
 import org.poo.converter.CurrencyConverter;
-import org.poo.users.Account;
-import org.poo.users.SavingsAccount;
-import org.poo.users.User;
-import org.poo.users.Card;
+import org.poo.users.*;
 import org.poo.fileio.ObjectInput;
 import org.poo.fileio.CommandInput;
 
@@ -19,6 +16,7 @@ public final class Bank {
     private static Bank instance;
     private final ArrayList<User> users = new ArrayList<>();
     private final ArrayList<Commerciant> commerciants = new ArrayList<>();
+    private ArrayList<SplitPayment> activePayments = new ArrayList<>();
     private final CurrencyConverter moneyConverter;
 
     public ArrayList<Commerciant> getCommerciants() {
@@ -41,6 +39,10 @@ public final class Bank {
      */
     public CurrencyConverter getMoneyConverter() {
         return moneyConverter;
+    }
+
+    public ArrayList<SplitPayment> getActivePayments() {
+        return activePayments;
     }
 
     private Bank(final ObjectInput input) {
@@ -371,11 +373,10 @@ public final class Bank {
                                 return 0;
                             } else if (currentAccount.getBalance() >= (amountToBePayed + commision)) {
                                 // nu stiu daca e corect sa verific daca are bani si pt comision
-                                currentAccount.addMoneySpent(ronSpent);
                                 double cashback = currentAccount.checkForCashback(commerciant,
-                                        getCommerciants(), amountToBePayed, user.getPlan());
+                                        getCommerciants(), amountToBePayed, user.getPlan(), ronSpent);
                                 currentAccount.subtractMoney(cashback + commision);
-                                currentAccount.addTransaction();
+                                currentAccount.addCommerciantTransaction();
                                 user.addCardPaymentTransaction(timestamp, amountToBePayed,
                                         commerciant, currentAccount.getIban());
 
@@ -530,54 +531,43 @@ public final class Bank {
      * @param input the input
      */
     public void splitPayment(final CommandInput input) {
-        ArrayList<String> ibanList = new ArrayList<>(input.getAccounts());
-        double amount = input.getAmount();
-        double eachAccountAmount = amount / ibanList.size();
-        String from = input.getCurrency();
-        int timestamp = input.getTimestamp();
-        int everyoneHasMoney = 0;
-        String poor = "nobody";
+        getActivePayments().add(new SplitPayment(input));
+    }
 
-        for (String iban : ibanList) {
-            for (User user : users) { // check if everyone can pay
-                for (Account currentAccount : user.getAccounts()) {
-                    if (currentAccount.getIban().equals(iban)) {
-                        String to = currentAccount.getCurrency();
-                        double amountToBePayed =
-                                getMoneyConverter().convert(eachAccountAmount, from, to);
-                        if (currentAccount.getBalance() >= amountToBePayed) {
-                            everyoneHasMoney++;
-                        } else {
-                            poor = currentAccount.getIban();
-                        }
-                    }
-                }
+    public void acceptSplitPayment(final CommandInput input) {
+        String email = input.getEmail();
+        int timestamp = input.getTimestamp();
+        boolean found = false;
+
+        for (SplitPayment paymentToAccept : getActivePayments()) {
+            if (!paymentToAccept.getIsCompleted() && paymentToAccept.getStatusForEmail(email, getUsers()) == null) {
+                paymentToAccept.acceptPayment(email, getUsers(), getMoneyConverter());
+                found = true;
+                break;
             }
         }
-        for (User user : users) {
-            for (Account currentAccount : user.getAccounts()) {
-                for (String iban : ibanList) {
-                    if (currentAccount.getIban().equals(iban) && !poor.equals("nobody")) {
-                        user.addSplitPaymentFailedTransaction(input, poor, iban);
-                    }
-                }
+        if (!found) {
+            // user not found
+            System.out.println("nu are split paymenturi active emailu dat");
+        }
+    }
+
+    public void rejectSplitPayment(final CommandInput input) {
+        String email = input.getEmail();
+        int timestamp = input.getTimestamp();
+        boolean found = false;
+
+        for (SplitPayment paymentToReject : getActivePayments()) {
+            if (!paymentToReject.getIsCompleted() && paymentToReject.getStatusForEmail(email, getUsers()) == null) {
+                // One user rejected the payment
+                paymentToReject.rejectPayment(email, getUsers());
+                found = true;
+                break;
             }
         }
-        if (everyoneHasMoney == ibanList.size()) {
-            for (User user : users) {
-                for (Account currentAccount : user.getAccounts()) {
-                    for (String iban : ibanList) {
-                        if (currentAccount.getIban().equals(iban)) {
-                            String to = currentAccount.getCurrency();
-                            double amountToBePayed =
-                                    getMoneyConverter().convert(eachAccountAmount, from, to);
-                            currentAccount.subtractMoney(amountToBePayed);
-                            user.addSplitCardPaymentTransaction(timestamp,
-                                    amountToBePayed, amount, from, ibanList);
-                        }
-                    }
-                }
-            }
+        if (!found) {
+            // user not found
+            System.out.println("nu are split paymenturi active emailu dat");
         }
     }
 
@@ -588,12 +578,13 @@ public final class Bank {
      * @return int
      */
     public int sendMoney(final CommandInput input, final ConverterJson out) {
-        //TODO trebuie sa mai adaug cashback si aici daca transferu e catre un comerciant
         int timestamp = input.getTimestamp();
         String iban = input.getAccount();
         double amount = input.getAmount();
         String ibanReceiver = input.getReceiver();
+        String commerciantName = "";
         int receiverExists = 0;
+        int receiverIsCommerciant = 0;
         int hasMoney = 1;
         int found = 0;
         String from = "RON"; // initialization but always  modifies before use
@@ -612,6 +603,13 @@ public final class Bank {
         }
         if (receiverExists == 1) {
 
+            for (Commerciant commerciant : commerciants) {
+                if (commerciant.getIban().equals(ibanReceiver)) {
+                    receiverIsCommerciant = 1;
+                    commerciantName = commerciant.getName();
+                }
+            }
+
             for (User user : users) {
                 for (Account currentAccount : user.getAccounts()) {
                     if (currentAccount.getIban().equals(iban)) {
@@ -625,7 +623,17 @@ public final class Bank {
                             hasMoney = 0;
                         }
                         if (hasMoney == 1) {
-                            currentAccount.subtractMoney(amount + commision);
+                            if (receiverIsCommerciant == 0) {
+                                currentAccount.subtractMoney(amount + commision);
+                            } else {
+                                double cashback = currentAccount.checkForCashback(commerciantName,
+                                        getCommerciants(), amount, user.getPlan(), ronSpent);
+                                currentAccount.subtractMoney(cashback + commision);
+                                currentAccount.addCommerciantTransaction();
+                                // S-ar putea sa nu trebuiasca / sa fie alta tranzactie pt send money -> comerciant
+                                user.addCardPaymentTransaction(timestamp, amount, commerciantName,
+                                                                currentAccount.getIban());
+                            }
                             user.addMoneyTransferTransaction(input, "sent", from, amount);
                         }
                     }

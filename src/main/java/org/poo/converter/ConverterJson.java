@@ -13,6 +13,8 @@ import org.poo.users.transactions.Transaction;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The type Converter json.
@@ -172,6 +174,7 @@ public final class ConverterJson {
         ObjectNode txt = mapper.createObjectNode();
 
         txt.put("command", "printTransactions");
+        transactions.sort(Comparator.comparingInt(Transaction::getTimestamp));
 
         ArrayNode transactionList = mapper.createArrayNode();
         for (Transaction transaction : transactions) {
@@ -226,6 +229,34 @@ public final class ConverterJson {
 
         txt2.set("transactions", transactionList);
 
+        //TODO CODUL INITIAL
+//        if (type.equals("spendings")) {
+//            ArrayList<CardPayment> cardPayments = new ArrayList<>();
+//            for (Transaction transaction : transactions) {
+//                if (transaction.getTimestamp() >= input.getStartTimestamp()
+//                        && transaction.getTimestamp() <= input.getEndTimestamp()
+//                        && transaction.getDescription().equals("Card payment")) {
+//                    cardPayments.add((CardPayment) transaction);
+//                }
+//            }
+//            cardPayments.sort(Comparator.comparing(CardPayment::getCommerciant));
+//
+//            ArrayNode commerciantsList = mapper.createArrayNode();
+//            for (CardPayment pay : cardPayments) {
+//                if (pay.getTimestamp() >= input.getStartTimestamp()
+//                        && pay.getTimestamp() <= input.getEndTimestamp()
+//                        && pay.getIban().equals(account.getIban())) {
+//                    ObjectNode txt3 = mapper.createObjectNode();
+//                    txt3.put("commerciant", pay.getCommerciant());
+//                    txt3.put("total", pay.getAmount());
+//                    commerciantsList.add(txt3);
+//                }
+//            }
+//            txt2.set("commerciants", commerciantsList);
+//        }
+
+        //TODO CODUL MODIFICAT CU MAP CA SA COMBIN SUMELE PLATITE LA FIECARE COMERCIANT
+
         if (type.equals("spendings")) {
             ArrayList<CardPayment> cardPayments = new ArrayList<>();
             for (Transaction transaction : transactions) {
@@ -236,17 +267,23 @@ public final class ConverterJson {
                 }
             }
             cardPayments.sort(Comparator.comparing(CardPayment::getCommerciant));
+            Map<String, Double> transactionsByCommerciant = new HashMap<>();
 
-            ArrayNode commerciantsList = mapper.createArrayNode();
             for (CardPayment pay : cardPayments) {
                 if (pay.getTimestamp() >= input.getStartTimestamp()
                         && pay.getTimestamp() <= input.getEndTimestamp()
                         && pay.getIban().equals(account.getIban())) {
-                    ObjectNode txt3 = mapper.createObjectNode();
-                    txt3.put("commerciant", pay.getCommerciant());
-                    txt3.put("total", pay.getAmount());
-                    commerciantsList.add(txt3);
+                    // add the amount payed in each transaction to the commerciant
+                    transactionsByCommerciant.merge(pay.getCommerciant(), pay.getAmount(), Double::sum);
                 }
+            }
+            ArrayNode commerciantsList = mapper.createArrayNode();
+
+            for (Map.Entry<String, Double> entry : transactionsByCommerciant.entrySet()) {
+                ObjectNode txt3 = mapper.createObjectNode();
+                txt3.put("commerciant", entry.getKey());
+                txt3.put("total", entry.getValue());
+                commerciantsList.add(txt3);
             }
             txt2.set("commerciants", commerciantsList);
         }

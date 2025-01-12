@@ -17,7 +17,6 @@ public class Account {
     private String alias;
     private double balance;
     private double minBalance;
-    private double moneySpent = 0;
     private int nrOfTransactions = 0;
     private int discountFood = 0;
     private int discountClothes = 0;
@@ -163,14 +162,6 @@ public class Account {
         this.minBalance = minBalance;
     }
 
-    public double getMoneySpent() {
-        return moneySpent;
-    }
-
-    public void setMoneySpent(double moneySpent) {
-        this.moneySpent = moneySpent;
-    }
-
     public int getNrOfTransactions() {
         return nrOfTransactions;
     }
@@ -203,12 +194,8 @@ public class Account {
         this.discountTech = discountTech;
     }
 
-    public void addTransaction() {
+    public void addCommerciantTransaction() {
         this.nrOfTransactions++;
-    }
-
-    public void addMoneySpent(final double money) {
-        this.moneySpent += money;
     }
 
     /**
@@ -264,7 +251,7 @@ public class Account {
     }
 
     public double checkForCashback (final String name, final ArrayList<Commerciant> commerciants,
-                                    final double amount, final String plan) {
+                                    final double amount, final String plan, final double ronSpent) {
         String strategy = "";
         String type = "";
 
@@ -288,7 +275,7 @@ public class Account {
                 return amount * 0.9;
             }
         } else { // spendingThreshold
-            if (getMoneySpent() >= 500) {
+            if (ronSpent >= 500) {
                 //TODO S-ar putea sa trebuieasca sa resetez money spent
                 if (plan.equals("standard") || plan.equals("student")) {
                     return amount * 0.9975;
@@ -297,7 +284,7 @@ public class Account {
                 } else { // gold
                     return amount * 0.993;
                 }
-            } else if (getMoneySpent() >= 300) {
+            } else if (ronSpent >= 300) {
                 if (plan.equals("standard") || plan.equals("student")) {
                     return amount * 0.998;
                 } else if (plan.equals("silver")) {
@@ -305,7 +292,7 @@ public class Account {
                 } else { // gold
                     return amount * 0.9945;
                 }
-            } else if (getMoneySpent() >= 100) {
+            } else if (ronSpent >= 100) {
                 if (plan.equals("standard") || plan.equals("student")) {
                     return amount * 0.999;
                 } else if (plan.equals("silver")) {

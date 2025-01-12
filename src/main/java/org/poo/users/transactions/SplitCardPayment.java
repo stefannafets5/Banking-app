@@ -1,6 +1,7 @@
 package org.poo.users.transactions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
@@ -9,48 +10,40 @@ import java.util.ArrayList;
  * The type Split card payment.
  */
 public final class SplitCardPayment extends Transaction {
-    private double amount;
+    private ArrayList<Double> amountList;
     private double splitAmount;
     private String currency;
+    private String type;
     private ArrayList<String> ibanList;
 
     /**
      * Instantiates a new Split card payment.
      *
      * @param timestamp    the timestamp
-     * @param amount       the amount
-     * @param splitAmount the split amount
+     * @param amountList   the amount list
+     * @param splitAmount  the split amount
      * @param currency     the currency
      * @param ibanList     the iban list
      */
-    public SplitCardPayment(final int timestamp, final double amount, final double splitAmount,
-                            final String currency, final ArrayList<String> ibanList) {
+    public SplitCardPayment(final int timestamp, final ArrayList<Double> amountList, final double splitAmount,
+                            final String currency, final ArrayList<String> ibanList, final String type) {
         super(timestamp, "Split payment of " + splitAmount + "0 " + currency);
-        this.amount = amount;
+        this.amountList = amountList;
         this.currency = currency;
         this.ibanList = ibanList;
         this.splitAmount = splitAmount;
+        this.type = type;
         if (splitAmount % 1 != 0) {
             this.setDescription("Split payment of " + splitAmount + " " + currency);
         }
     }
 
-    /**
-     * Gets amount.
-     *
-     * @return the amount
-     */
-    public double getAmount() {
-        return amount;
+    public ArrayList<Double> getAmountList() {
+        return amountList;
     }
 
-    /**
-     * Sets amount.
-     *
-     * @param amount the amount
-     */
-    public void setAmount(final double amount) {
-        this.amount = amount;
+    public void setAmountList(ArrayList<Double> amountList) {
+        this.amountList = amountList;
     }
 
     /**
@@ -107,13 +100,28 @@ public final class SplitCardPayment extends Transaction {
         this.splitAmount = splitAmount;
     }
 
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
     @Override
     public ObjectNode toJson(final ObjectMapper mapper) {
         ObjectNode txt = mapper.createObjectNode();
+        ArrayNode amountForUsers = mapper.createArrayNode();
+
+        for (Double amount : getAmountList()) {
+            amountForUsers.add(amount);
+        }
+
+        txt.set("amountForUsers", amountForUsers);
         txt.put("timestamp", getTimestamp());
         txt.put("description", getDescription());
-        txt.put("amount", getSplitAmount() / getIbanList().size());
         txt.put("currency", getCurrency());
+        txt.put("splitPaymentType", getType());
         txt.putPOJO("involvedAccounts", getIbanList());
         return txt;
     }

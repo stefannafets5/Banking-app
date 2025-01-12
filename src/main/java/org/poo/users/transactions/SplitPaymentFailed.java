@@ -11,9 +11,11 @@ import java.util.ArrayList;
  * The type Split payment failed.
  */
 public final class SplitPaymentFailed extends Transaction {
-    private double amount;
+    private ArrayList<Double> amountList;
     private String currency;
     private String poor;
+    private String type;
+    private double amount;
     private ArrayList<String> ibanList;
 
 
@@ -24,32 +26,45 @@ public final class SplitPaymentFailed extends Transaction {
      * @param poor     the poor
      * @param fromIban the from iban
      */
-    public SplitPaymentFailed(final CommandInput input, final String poor, final String fromIban) {
+    public SplitPaymentFailed(final CommandInput input, final String poor, final String fromIban,
+                              final ArrayList<Double> amountList, final String splitType, final double amount) {
         super(input.getTimestamp(), "Split payment of "
                 + input.getAmount() + "0 " + input.getCurrency());
-        this.amount = input.getAmount() / input.getAccounts().size();
+        if (splitType.equals("custom")) {
+            this.setDescription("Split payment of "
+                    + input.getAmount() + " " + input.getCurrency());
+        }
+        this.amountList = amountList;
         this.currency = input.getCurrency();
         this.poor = poor;
+        this.type = splitType;
+        this.amount = amount / input.getAccounts().size();
         this.ibanList = (ArrayList<String>) input.getAccounts();
         setFromIban(fromIban);
     }
 
-    /**
-     * Gets amount.
-     *
-     * @return the amount
-     */
     public double getAmount() {
         return amount;
     }
 
-    /**
-     * Sets amount.
-     *
-     * @param amount the amount
-     */
-    public void setAmount(final double amount) {
+    public void setAmount(double amount) {
         this.amount = amount;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public ArrayList<Double> getAmountList() {
+        return amountList;
+    }
+
+    public void setAmountList(ArrayList<Double> amountList) {
+        this.amountList = amountList;
     }
 
     /**
@@ -109,9 +124,22 @@ public final class SplitPaymentFailed extends Transaction {
     @Override
     public ObjectNode toJson(final ObjectMapper mapper) {
         ObjectNode txt = mapper.createObjectNode();
+
+        if (getType().equals("custom")) {
+            ArrayNode amountForUsers = mapper.createArrayNode();
+
+            for (Double amount : getAmountList()) {
+                amountForUsers.add(amount);
+            }
+
+            txt.set("amountForUsers", amountForUsers);
+        } else {
+            txt.put("amount", getAmount());
+        }
+
         txt.put("timestamp", getTimestamp());
         txt.put("description", getDescription());
-        txt.put("amount", getAmount());
+        txt.put("splitPaymentType", getType());
         txt.put("currency", getCurrency());
         txt.put("error", "Account " + poor
                 + " has insufficient funds for a split payment.");

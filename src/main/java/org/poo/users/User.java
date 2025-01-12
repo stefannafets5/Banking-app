@@ -248,9 +248,10 @@ public class User {
      * @param poor     the poor
      * @param fromIban the from iban
      */
-    public void addSplitPaymentFailedTransaction(final CommandInput input, final String poor,
-                                                 final String fromIban) {
-        getTransactions().add(new SplitPaymentFailed(input, poor, fromIban));
+    public void addSplitPaymentFailedTransaction(final CommandInput input, final String poor, final String type,
+                                                 final String fromIban, final ArrayList<Double> amountList,
+                                                 final double amount) {
+        getTransactions().add(new SplitPaymentFailed(input, poor, fromIban, amountList, type, amount));
     }
 
     /**
@@ -281,16 +282,16 @@ public class User {
      * Add split card payment transaction.
      *
      * @param timestamp    the timestamp
-     * @param amount       the amount
-     * @param splitAmount the split amount
+     * @param amountList   the amount list
+     * @param splitAmount  the split amount
      * @param currency     the currency
      * @param ibanList     the iban list
      */
-    public void addSplitCardPaymentTransaction(final int timestamp, final double amount,
+    public void addSplitCardPaymentTransaction(final int timestamp, final ArrayList<Double> amountList,
                                                 final double splitAmount, final String currency,
-                                                final ArrayList<String> ibanList) {
-        getTransactions().add(new SplitCardPayment(timestamp, amount,
-                              splitAmount, currency, ibanList));
+                                                final ArrayList<String> ibanList, final String type) {
+        getTransactions().add(new SplitCardPayment(timestamp, amountList,
+                              splitAmount, currency, ibanList, type));
     }
 
     public void addUpgradePlanTransaction(final int timestamp, final String iban, final String plan) {
