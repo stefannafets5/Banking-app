@@ -17,6 +17,7 @@ public class Account {
     private String alias;
     private double balance;
     private double minBalance;
+    private double moneySpent = 0;
     private int nrOfTransactions = 0;
     private int discountFood = 0;
     private int discountClothes = 0;
@@ -162,6 +163,14 @@ public class Account {
         this.minBalance = minBalance;
     }
 
+    public double getMoneySpent() {
+        return moneySpent;
+    }
+
+    public void setMoneySpent(double moneySpent) {
+        this.moneySpent = moneySpent;
+    }
+
     public int getNrOfTransactions() {
         return nrOfTransactions;
     }
@@ -216,6 +225,14 @@ public class Account {
         this.balance -= amount;
     }
 
+    public void addMoneySpent(final double amount) {
+        this.moneySpent += amount;
+    }
+
+    public void subtractMoneySpent(final double amount) {
+        this.moneySpent -= amount;
+    }
+
     /**
      * Add card.
      *
@@ -224,9 +241,9 @@ public class Account {
      * @param transactions the transactions
      * @param description  the description
      */
-    public void addCard(final CommandInput input, final String cardType,
+    public void addCard(final CommandInput input, final String cardType, final String emailCardCreator,
                          final ArrayList<Transaction> transactions, final String description) {
-        Card card = new Card(cardType);
+        Card card = new Card(cardType, emailCardCreator);
 
         card.addCardCreationTransaction(input.getTimestamp(),
                 input.getEmail(), getIban(), transactions, description);
@@ -251,7 +268,7 @@ public class Account {
     }
 
     public double checkForCashback (final String name, final ArrayList<Commerciant> commerciants,
-                                    final double amount, final String plan, final double ronSpent) {
+                                    final double amount, final String plan, final Account account) {
         String strategy = "";
         String type = "";
 
@@ -275,8 +292,9 @@ public class Account {
                 return amount * 0.9;
             }
         } else { // spendingThreshold
-            if (ronSpent >= 500) {
+            if (account.getMoneySpent() >= 500) {
                 //TODO S-ar putea sa trebuieasca sa resetez money spent
+                account.subtractMoneySpent(500);
                 if (plan.equals("standard") || plan.equals("student")) {
                     return amount * 0.9975;
                 } else if (plan.equals("silver")) {
@@ -284,7 +302,8 @@ public class Account {
                 } else { // gold
                     return amount * 0.993;
                 }
-            } else if (ronSpent >= 300) {
+            } else if (account.getMoneySpent() >= 300) {
+                account.subtractMoneySpent(300);
                 if (plan.equals("standard") || plan.equals("student")) {
                     return amount * 0.998;
                 } else if (plan.equals("silver")) {
@@ -292,7 +311,8 @@ public class Account {
                 } else { // gold
                     return amount * 0.9945;
                 }
-            } else if (ronSpent >= 100) {
+            } else if (account.getMoneySpent() >= 100) {
+                account.subtractMoneySpent(100);
                 if (plan.equals("standard") || plan.equals("student")) {
                     return amount * 0.999;
                 } else if (plan.equals("silver")) {

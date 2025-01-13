@@ -5,11 +5,13 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.poo.fileio.CommandInput;
 import org.poo.bank.Bank;
+import org.poo.users.BusinessAccount;
 import org.poo.users.User;
 import org.poo.users.Account;
 import org.poo.users.Card;
 import org.poo.users.transactions.CardPayment;
 import org.poo.users.transactions.Transaction;
+import org.poo.converter.CurrencyConverter;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -194,69 +196,44 @@ public final class ConverterJson {
      * @param account      the account
      * @param type         the type
      */
-    public void createReport(final ArrayList<Transaction> transactions,
+    public void createReport(final ArrayList<Transaction> transactions, final ArrayList<User> users,
                              final CommandInput input, final Account account, final String type) {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode txt = mapper.createObjectNode();
 
         if (type.equals("normal")) {
             txt.put("command", "report");
-        } else {
+        } else  if (type.equals("spendings")) {
             txt.put("command", "spendingsReport");
+        } else {
+            txt.put("command", "businessReport");
         }
 
         ObjectNode txt2 = mapper.createObjectNode();
         txt2.put("IBAN", account.getIban());
         txt2.put("balance", account.getBalance());
         txt2.put("currency", account.getCurrency());
-        ArrayNode transactionList = mapper.createArrayNode();
-        for (Transaction transaction : transactions) {
-            if (transaction.getTimestamp() >= input.getStartTimestamp()
-                    && transaction.getTimestamp() <= input.getEndTimestamp()) {
-                if (transaction.getFromIban().equals(" ")
-                        || transaction.getFromIban().equals(account.getIban())) {
-                    if (type.equals("normal")) {
-                        transactionList.add(transaction.toJson(mapper));
-                    } else if (transaction.getDescription().equals("Card payment")) {
-                        CardPayment pay = (CardPayment) transaction;
-                        if (pay.getIban().equals(account.getIban())) {
+
+        if (!type.equals("business")) {
+            ArrayNode transactionList = mapper.createArrayNode();
+            for (Transaction transaction : transactions) {
+                if (transaction.getTimestamp() >= input.getStartTimestamp()
+                        && transaction.getTimestamp() <= input.getEndTimestamp()) {
+                    if (transaction.getFromIban().equals(" ")
+                            || transaction.getFromIban().equals(account.getIban())) {
+                        if (type.equals("normal")) {
                             transactionList.add(transaction.toJson(mapper));
+                        } else if (transaction.getDescription().equals("Card payment")) {
+                            CardPayment pay = (CardPayment) transaction;
+                            if (pay.getIban().equals(account.getIban())) {
+                                transactionList.add(transaction.toJson(mapper));
+                            }
                         }
                     }
                 }
             }
+            txt2.set("transactions", transactionList);
         }
-
-        txt2.set("transactions", transactionList);
-
-        //TODO CODUL INITIAL
-//        if (type.equals("spendings")) {
-//            ArrayList<CardPayment> cardPayments = new ArrayList<>();
-//            for (Transaction transaction : transactions) {
-//                if (transaction.getTimestamp() >= input.getStartTimestamp()
-//                        && transaction.getTimestamp() <= input.getEndTimestamp()
-//                        && transaction.getDescription().equals("Card payment")) {
-//                    cardPayments.add((CardPayment) transaction);
-//                }
-//            }
-//            cardPayments.sort(Comparator.comparing(CardPayment::getCommerciant));
-//
-//            ArrayNode commerciantsList = mapper.createArrayNode();
-//            for (CardPayment pay : cardPayments) {
-//                if (pay.getTimestamp() >= input.getStartTimestamp()
-//                        && pay.getTimestamp() <= input.getEndTimestamp()
-//                        && pay.getIban().equals(account.getIban())) {
-//                    ObjectNode txt3 = mapper.createObjectNode();
-//                    txt3.put("commerciant", pay.getCommerciant());
-//                    txt3.put("total", pay.getAmount());
-//                    commerciantsList.add(txt3);
-//                }
-//            }
-//            txt2.set("commerciants", commerciantsList);
-//        }
-
-        //TODO CODUL MODIFICAT CU MAP CA SA COMBIN SUMELE PLATITE LA FIECARE COMERCIANT
-
         if (type.equals("spendings")) {
             ArrayList<CardPayment> cardPayments = new ArrayList<>();
             for (Transaction transaction : transactions) {
@@ -286,6 +263,65 @@ public final class ConverterJson {
                 commerciantsList.add(txt3);
             }
             txt2.set("commerciants", commerciantsList);
+        }
+        if (type.equals("business")) {
+            BusinessAccount business = (BusinessAccount) account;
+
+            txt2.put("deposit limit", business.getConvertedDepositLimit());
+            txt2.put("spending limit", business.getSpendingLimit());
+            txt2.put("statistics type", input.getType());
+            txt2.put("total deposited", business.getTotalDeposited());
+            txt2.put("total spent", business.getTotalSpent());
+
+            ArrayNode managersNode = mapper.createArrayNode();
+            for (String managerName : business.getManagerDeposits().keySet()) {
+                ObjectNode managerNode = mapper.createObjectNode();
+                managerNode.put("username", managerName);
+                managerNode.put("deposited", business.getManagerDeposits().get(managerName));
+                managerNode.put("spent", business.getManagerSpending().get(managerName));
+                managersNode.add(managerNode);
+            }
+            for (String managerEmail : business.getManagerEmails()) {
+                String managerName = "not found";
+                for (User user : users) {
+                    if (managerEmail.equals(user.getEmail())) {
+                        managerName = user.getLastName() + " " + user.getFirstName();
+                    }
+                }
+                if (!business.getManagerDeposits().containsKey(managerName)) {
+                    ObjectNode managerNode = mapper.createObjectNode();
+                    managerNode.put("username", managerName);
+                    managerNode.put("deposited", 0.0);
+                    managerNode.put("spent", 0.0);
+                    managersNode.add(managerNode);
+                }
+            }
+            txt2.set("managers", managersNode);
+
+            ArrayNode employeesNode = mapper.createArrayNode();
+            for (String employeeName : business.getEmployeeDeposits().keySet()) {
+                ObjectNode employeeNode = mapper.createObjectNode();
+                employeeNode.put("username", employeeName);
+                employeeNode.put("deposited", business.getEmployeeDeposits().get(employeeName));
+                employeeNode.put("spent", business.getEmployeeSpending().get(employeeName));
+                employeesNode.add(employeeNode);
+            }
+            for (String employeeEmail : business.getEmployeeEmails()) {
+                String employeeName = "not found";
+                for (User user : users) {
+                    if (employeeEmail.equals(user.getEmail())) {
+                        employeeName = user.getLastName() + " " + user.getFirstName();
+                    }
+                }
+                if (!business.getEmployeeDeposits().containsKey(employeeName)) {
+                    ObjectNode employeeNode = mapper.createObjectNode();
+                    employeeNode.put("username", employeeName);
+                    employeeNode.put("deposited", 0.0);
+                    employeeNode.put("spent", 0.0);
+                    employeesNode.add(employeeNode);
+                }
+            }
+            txt2.set("employees", employeesNode);
         }
 
         txt.set("output", txt2);

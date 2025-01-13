@@ -13,16 +13,18 @@ public class Card {
     private String status;
     private String cardNumber;
     private String type;
+    private String emailCardCreator;
 
     /**
      *
      * @param type the type
      */
 
-    public Card(final String type) {
+    public Card(final String type, final String emailCardCreator) {
         this.status = "active";
         this.cardNumber = Utils.generateCardNumber();
         this.type = type;
+        this.emailCardCreator = emailCardCreator;
     }
 
     /**
@@ -77,6 +79,14 @@ public class Card {
      */
     public void setType(final String type) {
         this.type = type;
+    }
+
+    public String getEmailCardCreator() {
+        return emailCardCreator;
+    }
+
+    public void setEmailCardCreator(String emailCardCreator) {
+        this.emailCardCreator = emailCardCreator;
     }
 
     /**

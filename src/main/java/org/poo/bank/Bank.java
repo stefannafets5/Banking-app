@@ -83,6 +83,15 @@ public final class Bank {
         instance = null;
     }
 
+    public String getNameByEmail(final String email) {
+        for (User user : users) {
+            if (user.getEmail().equals(email)) {
+                return user.getLastName() + " " + user.getFirstName();
+            }
+        }
+        return null;
+    }
+
     /**
      * Sets alias.
      *
@@ -111,10 +120,12 @@ public final class Bank {
      */
     public void addAccount(final CommandInput input) {
         String email = input.getEmail();
+        String to = input.getCurrency();
 
         for (User user : users) {
             if (user.getEmail().equals(email)) {
-                user.addAccount(input);
+                double limit = getMoneyConverter().convert(500, "RON", to);
+                user.addAccount(input, limit);
                 break;
             }
         }
@@ -161,6 +172,17 @@ public final class Bank {
         for (User user : users) {
             for (Account currentAccount : user.getAccounts()) {
                 if (currentAccount.getIban().equals(iban)) {
+                    if (currentAccount.getType().equals("business")) {
+                        BusinessAccount businessAccount = (BusinessAccount) currentAccount;
+                        if (!businessAccount.isOwner(input.getEmail())) {
+                            businessAccount.addTotalDeposited(input.getAmount());
+                            if (businessAccount.isManager(input.getEmail())) {
+                                businessAccount.recordManagerDeposit(getNameByEmail(input.getEmail()), input.getAmount());
+                            } else if (businessAccount.isEmployee(input.getEmail())) {
+                                businessAccount.recordEmployeeDeposit(getNameByEmail(input.getEmail()), input.getAmount());
+                            }
+                        }
+                    }
                     currentAccount.addMoney(input.getAmount());
                     break;
                 }
@@ -231,7 +253,7 @@ public final class Bank {
             if (user.getEmail().equals(email)) {
                 for (Account currentAccount : user.getAccounts()) {
                     if (currentAccount.getIban().equals(iban)) {
-                        currentAccount.addCard(input, type,
+                        currentAccount.addCard(input, type, email,
                                 user.getTransactions(), "New card created");
                         break;
                     }
@@ -338,6 +360,103 @@ public final class Bank {
         }
     }
 
+    public void addBusinessAssociate (final CommandInput input) {
+        String ibanContBusiness = input.getAccount();
+        String role = input.getRole();
+        String email = input.getEmail();
+        int timestamp = input.getTimestamp();
+        int accountFound = 0;
+        int userFound = 0;
+
+        for (User user : users) {
+            if (user.getEmail().equals(email)) {
+                userFound = 1;
+                break;
+            }
+        }
+        if (userFound == 0) {
+            // user not found
+            return;
+        }
+        for (User user : users) {
+            for (Account currentAccount : user.getAccounts()) {
+                if (currentAccount.getIban().equals(ibanContBusiness)) {
+                    accountFound = 1;
+                    if (currentAccount.getType().equals("business")) {
+                        BusinessAccount businessAccount = (BusinessAccount) currentAccount;
+                        if (businessAccount.isAssociate(email)) {
+                            // e deja asociat;
+                            return;
+                        }
+                        if (role.equals("manager")) {
+                            //businessAccount.getManagerDeposits().putIfAbsent(getNameByEmail(email), 0.0);
+                            // businessAccount.getManagerSpending().putIfAbsent(getNameByEmail(email), 0.0);
+                            businessAccount.getManagerEmails().add(email);
+                            return;
+                        }
+                        if (role.equals("employee")) {
+                            //businessAccount.getEmployeeDeposits().putIfAbsent(getNameByEmail(email), 0.0);
+                            //businessAccount.getEmployeeSpending().putIfAbsent(getNameByEmail(email), 0.0);
+                            businessAccount.getEmployeeEmails().add(email);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        if (accountFound == 0) {
+            // account not found
+            return;
+        }
+    }
+
+    public void changeLimit(final CommandInput input) {
+        String command = input.getCommand();
+        String ibanContBusiness = input.getAccount();
+        String email = input.getEmail();
+        double amount = input.getAmount();
+        int timestamp = input.getTimestamp();
+        int accountFound = 0;
+        int userFound = 0;
+
+        for (User user : users) {
+            if (user.getEmail().equals(email)) {
+                userFound = 1;
+                break;
+            }
+        }
+        if (userFound == 0) {
+            // user not found
+            return;
+        }
+        for (User user : users) {
+            for (Account currentAccount : user.getAccounts()) {
+                if (currentAccount.getIban().equals(ibanContBusiness)) {
+                    accountFound = 1;
+                    if (currentAccount.getType().equals("business")) {
+                        BusinessAccount businessAccount = (BusinessAccount) currentAccount;
+                        if (businessAccount.isOwner(email)) {
+                            if (command.equals("changeSpendingLimit")) {
+                                businessAccount.setSpendingLimit(amount);
+                                return;
+                            } else { // changeDepositLimit
+                                businessAccount.setDepositLimit(amount);
+                                return;
+                            }
+                        } else {
+                            // You are not authorized to make this transaction
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        if (accountFound == 0) {
+            // account not found
+            return;
+        }
+    }
+
     /**
      * Pay online int.
      *
@@ -351,12 +470,39 @@ public final class Bank {
         int timestamp = input.getTimestamp();
         String commerciant = input.getCommerciant();
         String email = input.getEmail();
+        int commerciantSpendingThreshold = 0;
         int found = 0;
+        int isBusiness = 0; // = 1 daca cardul dat apartine unui cont de business
 
         if (amount == 0) {
             return 0;
         }
 
+        for (Commerciant currentCommerciant : commerciants) {
+            if (currentCommerciant.getName().equals(commerciant)) {
+                if (currentCommerciant.getCashbackStrategy().equals("spendingThreshold")) {
+                    commerciantSpendingThreshold = 1;
+                }
+            }
+        }
+
+        for (User user : users) {
+            for (Account currentAccount : user.getAccounts()){
+                int currentAccountBusiness = 0;
+                if (currentAccount.getType().equals("business")) {
+                    currentAccountBusiness = 1;
+                }
+                for (int i = 0; i < currentAccount.getCards().size(); i++) {
+                    Card currentCard = currentAccount.getCards().get(i);
+                    if (currentCard.getCardNumber().equals(cardNr) && currentAccountBusiness == 1) {
+                        isBusiness = 1;
+                    }
+                }
+            }
+        }
+        if (isBusiness == 1) {
+            return payOnlineBusiness(input, commerciantSpendingThreshold);
+        }
         for (User user : users) {
             if (user.getEmail().equals(email)) {
                 for (Account currentAccount : user.getAccounts()) {
@@ -373,17 +519,19 @@ public final class Bank {
                                 return 0;
                             } else if (currentAccount.getBalance() >= (amountToBePayed + commision)) {
                                 // nu stiu daca e corect sa verific daca are bani si pt comision
+                                if (commerciantSpendingThreshold == 1) {
+                                    currentAccount.addMoneySpent(ronSpent);
+                                }
                                 double cashback = currentAccount.checkForCashback(commerciant,
-                                        getCommerciants(), amountToBePayed, user.getPlan(), ronSpent);
+                                        getCommerciants(), amountToBePayed, user.getPlan(), currentAccount);
                                 currentAccount.subtractMoney(cashback + commision);
                                 currentAccount.addCommerciantTransaction();
                                 user.addCardPaymentTransaction(timestamp, amountToBePayed,
                                         commerciant, currentAccount.getIban());
-
                                 if (currentCard.getType().equals("oneTime")) {
                                     currentAccount.removeCard(i, input, user.getEmail(),
                                             user.getTransactions(), "The card has been destroyed");
-                                    currentAccount.addCard(input, "oneTime",
+                                    currentAccount.addCard(input, "oneTime", email,
                                             user.getTransactions(), "New card created");
                                 }
                                 return 1;
@@ -398,9 +546,74 @@ public final class Bank {
                 user.addPaymentFailedTransaction(timestamp);
             }
         }
-
         if (found == 0) {
             return 2;
+        }
+        return 0;
+    }
+
+    public int payOnlineBusiness(final CommandInput input, final int commerciantSpendingThreshold) {
+        String cardNr = input.getCardNumber();
+        double amount = input.getAmount();
+        String from = input.getCurrency();
+        int timestamp = input.getTimestamp();
+        String commerciant = input.getCommerciant();
+        String email = input.getEmail();
+
+        for (User user : users) {
+            for (Account currentAccount : user.getAccounts()) {
+                if (currentAccount.getType().equals("business")) {
+                    BusinessAccount businessAccount = (BusinessAccount) currentAccount;
+                    double limit = businessAccount.getSpendingLimit();
+                    boolean isEmployee = businessAccount.isEmployee(email);
+                    boolean isManagerOrOwner = (businessAccount.isManager(email) || businessAccount.isOwner(email));
+
+                    for (int i = 0; i < currentAccount.getCards().size(); i++) {
+                        Card currentCard = currentAccount.getCards().get(i);
+                        if (currentCard.getCardNumber().equals(cardNr)) {
+                            double ronSpent = getMoneyConverter().convert(amount, from, "RON");
+                            if (isManagerOrOwner || (isEmployee && ronSpent <= limit &&
+                                    currentCard.getEmailCardCreator().equals(email))) {
+                                // daca e employee, trebuie sa fi creat el cardul si sa plateasca <= limita
+                                String to = currentAccount.getCurrency();
+                                double amountToBePayed = getMoneyConverter().convert(amount, from, to);
+                                double commision = user.checkCommision(amountToBePayed, ronSpent);
+                                if (currentCard.getStatus().equals("frozen")) {
+                                    user.addErrorTransaction(timestamp, "The card is frozen");
+                                    return 0;
+                                } else if (currentAccount.getBalance() >= (amountToBePayed + commision)) {
+                                    // nu stiu daca e corect sa verific daca are bani si pt comision
+                                    if (commerciantSpendingThreshold == 1) {
+                                        currentAccount.addMoneySpent(ronSpent);
+                                    }
+                                    double cashback = currentAccount.checkForCashback(commerciant,
+                                            getCommerciants(), amountToBePayed, user.getPlan(), currentAccount);
+                                    currentAccount.subtractMoney(cashback + commision);
+                                    if (!businessAccount.isOwner(email)) {
+                                        // s-ar putea sa trebuiasca alta conversie
+                                        ((BusinessAccount) currentAccount).addTotalSpent(amountToBePayed);
+                                        if (businessAccount.isManager(email)) {
+                                            businessAccount.recordManagerSpending(getNameByEmail(email), amountToBePayed);
+                                        } else if (businessAccount.isEmployee(email)) {
+                                            businessAccount.recordEmployeeSpending(getNameByEmail(email), amountToBePayed);
+                                        }
+                                    }
+                                    currentAccount.addCommerciantTransaction();
+                                    user.addCardPaymentTransaction(timestamp, amountToBePayed,
+                                            commerciant, currentAccount.getIban());
+                                    if (currentCard.getType().equals("oneTime")) {
+                                        currentAccount.removeCard(i, input, user.getEmail(),
+                                                user.getTransactions(), "The card has been destroyed");
+                                        currentAccount.addCard(input, "oneTime", email,
+                                                user.getTransactions(), "New card created");
+                                    }
+                                    return 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         return 0;
     }
@@ -585,6 +798,7 @@ public final class Bank {
         String commerciantName = "";
         int receiverExists = 0;
         int receiverIsCommerciant = 0;
+        int commerciantSpendingThreshold = 0;
         int hasMoney = 1;
         int found = 0;
         String from = "RON"; // initialization but always  modifies before use
@@ -607,6 +821,9 @@ public final class Bank {
                 if (commerciant.getIban().equals(ibanReceiver)) {
                     receiverIsCommerciant = 1;
                     commerciantName = commerciant.getName();
+                    if (commerciant.getCashbackStrategy().equals("spendingThreshold")) {
+                        commerciantSpendingThreshold = 1;
+                    }
                 }
             }
 
@@ -626,8 +843,11 @@ public final class Bank {
                             if (receiverIsCommerciant == 0) {
                                 currentAccount.subtractMoney(amount + commision);
                             } else {
+                                if (commerciantSpendingThreshold == 1) {
+                                    currentAccount.addMoneySpent(ronSpent);
+                                }
                                 double cashback = currentAccount.checkForCashback(commerciantName,
-                                        getCommerciants(), amount, user.getPlan(), ronSpent);
+                                        getCommerciants(), amount, user.getPlan(), currentAccount);
                                 currentAccount.subtractMoney(cashback + commision);
                                 currentAccount.addCommerciantTransaction();
                                 // S-ar putea sa nu trebuiasca / sa fie alta tranzactie pt send money -> comerciant
@@ -748,12 +968,11 @@ public final class Bank {
         for (User user : users) {
             for (Account currentAccount : user.getAccounts()) {
                 if (currentAccount.getIban().equals(iban)) {
-
                     if (currentAccount.getType().equals("savings")
                             && input.getCommand().equals("spendingsReport")) {
                         out.spendingsReportError(input.getTimestamp());
                     } else {
-                        out.createReport(user.getTransactions(), input, currentAccount, type);
+                        out.createReport(user.getTransactions(), getUsers(), input, currentAccount, type);
                     }
                     return 1;
                 }

@@ -161,13 +161,18 @@ public class User {
      *
      * @param input the input
      */
-    public void addAccount(final CommandInput input) {
+    public void addAccount(final CommandInput input, final double limit) {
         if (input.getAccountType().equals("savings")) {
             SavingsAccount account = new SavingsAccount(input.getCurrency(),
                     input.getAccountType(), input.getInterestRate());
             getAccounts().add(account);
-        } else {
+        } else if (input.getAccountType().equals("classic")) {
             Account account = new Account(input.getCurrency(), input.getAccountType());
+            getAccounts().add(account);
+        } else { // business account
+            BusinessAccount account = new BusinessAccount(input.getCurrency(),
+                    input.getAccountType(), input.getEmail());
+            account.setConvertedDepositLimit(limit);
             getAccounts().add(account);
         }
         addAccountCreationTransaction(input.getTimestamp());
