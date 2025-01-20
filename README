@@ -1,0 +1,40 @@
+Etapa 2 - POO - Springer Robert Stefan 321CAb 2024-2025
+
+    In main instantiez comenzile date de la input folosind factory design pattern.
+Comenzile si factory-ul sunt in pachetul "commands".
+
+    Fiecare comanda extinde clasa generala Command si apeleaza prin metoda "execute"
+o metoda din clasa Bank care contine logica pentru majoritatea modificarilor si
+a comenzilor.
+
+    Clasa Bank contine CurrencyConverter, o lista de useri, una de comercianti
+(Ambele liste date de la input) si o lista cu splitPayementuri care au fost
+incepute.
+
+    CurrencyConverter este clasa care stocheaza toate ratele de schimb valutar si
+are metoda prin care se converteste o suma de bani dintr-o moneda in alta, direct
+(s-a dat rata de schimb la input) sau indirect (trebuie sa trec prin mai multe
+schimbari de moneda folosind un hash map).
+
+    Fiecare user din lista contine o lista de conturi (care pot fi de 3 tipuri)
+si una de tranzactii.
+
+    Fiecare tranzactie extinde clasa generala Transaction si suprascrie metoda
+"toJson" pentru ca in functie de tipul tranzactiei trebuie afisate in output
+diferite campuri, iar ConverterJson poate apela direct aceasta metoda pentru
+orice tranzactie fara sa stie tipul ei.
+
+    Fiecare cont al user-ului contine o lista de carduri (care pot fi de 2 tipuri).
+
+    Fata de etapa 1, am mai adaugat cateva comenzi, iar "split payement" am
+refacut-o total. Cand este primita comanda se adauga in lista o instanta de
+splitPayement si de fiecare data cand se primeste un accept/reject se verifica
+(in ordine) pentru care din instante se aplica.
+
+    Pentru cashback, planul este retinut in "user" si fiecare cont retine
+individual discounturile.
+
+    ConverterJson este clasa care pune in fisierul de output datele corespunzatoare
+output-ului comenzii.
+
+    Am folosit design pattern-urile: singleton, command, factory si strategy.
