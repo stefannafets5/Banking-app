@@ -4,7 +4,10 @@ import org.poo.bank.Bank;
 import org.poo.converter.ConverterJson;
 import org.poo.fileio.CommandInput;
 
-public class BusinessReport implements Command{
+/**
+ * The type Business report.
+ */
+public final class BusinessReport implements Command {
     private Bank bank;
     private CommandInput input;
     private ConverterJson out;

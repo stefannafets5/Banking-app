@@ -13,8 +13,11 @@ public final class Checkstyle {
     private Checkstyle() {
         //constructor for checkstyle
     }
+
     /**
      * DO NOT MODIFY
+     *
+     * @return the int
      */
     public static int testCheckstyle() {
         ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar",

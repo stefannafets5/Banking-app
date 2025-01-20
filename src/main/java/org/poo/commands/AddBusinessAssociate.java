@@ -3,7 +3,10 @@ package org.poo.commands;
 import org.poo.bank.Bank;
 import org.poo.fileio.CommandInput;
 
-public class AddBusinessAssociate implements Command {
+/**
+ * The type Add business associate.
+ */
+public final class AddBusinessAssociate implements Command {
     private Bank bank;
     private CommandInput input;
 

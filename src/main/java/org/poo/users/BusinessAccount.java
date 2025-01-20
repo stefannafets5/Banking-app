@@ -1,8 +1,13 @@
 package org.poo.users;
 
+import org.poo.utils.Utils;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
+/**
+ * The type Business account.
+ */
 public class BusinessAccount extends Account {
     private String ownerEmail;
     private ArrayList<String> managerEmails;
@@ -11,13 +16,20 @@ public class BusinessAccount extends Account {
     private LinkedHashMap<String, Double> managerSpending;
     private LinkedHashMap<String, Double> employeeDeposits;
     private LinkedHashMap<String, Double> employeeSpending;
-    private double spendingLimit = 500;
-    private double depositLimit = 500;
+    private double spendingLimit = Utils.LIMIT;
+    private double depositLimit = Utils.LIMIT;
     private double totalDeposited = 0;
     private double totalSpent = 0;
     private ArrayList<String> outOrderForReportManager;
     private ArrayList<String> outOrderForReportEmployee;
 
+    /**
+     * Instantiates a new Business account.
+     *
+     * @param currency   the currency
+     * @param type       the type
+     * @param ownerEmail the owner email
+     */
     public BusinessAccount(final String currency, final String type, final String ownerEmail) {
         super(currency, type);
         this.ownerEmail = ownerEmail;
@@ -31,149 +43,337 @@ public class BusinessAccount extends Account {
         this.employeeSpending = new LinkedHashMap<>();
     }
 
+    /**
+     * Gets owner email.
+     *
+     * @return the owner email
+     */
     public String getOwnerEmail() {
         return ownerEmail;
     }
 
-    public void setOwnerEmail(String ownerEmail) {
+    /**
+     * Sets owner email.
+     *
+     * @param ownerEmail the owner email
+     */
+    public void setOwnerEmail(final String ownerEmail) {
         this.ownerEmail = ownerEmail;
     }
 
+    /**
+     * Gets manager emails.
+     *
+     * @return the manager emails
+     */
     public ArrayList<String> getManagerEmails() {
         return managerEmails;
     }
 
-    public void setManagerEmails(ArrayList<String> managerEmails) {
+    /**
+     * Sets manager emails.
+     *
+     * @param managerEmails the manager emails
+     */
+    public void setManagerEmails(final ArrayList<String> managerEmails) {
         this.managerEmails = managerEmails;
     }
 
+    /**
+     * Gets employee emails.
+     *
+     * @return the employee emails
+     */
     public ArrayList<String> getEmployeeEmails() {
         return employeeEmails;
     }
 
-    public void setEmployeeEmails(ArrayList<String> employeeEmails) {
+    /**
+     * Sets employee emails.
+     *
+     * @param employeeEmails the employee emails
+     */
+    public void setEmployeeEmails(final ArrayList<String> employeeEmails) {
         this.employeeEmails = employeeEmails;
     }
 
+    /**
+     * Gets spending limit.
+     *
+     * @return the spending limit
+     */
     public double getSpendingLimit() {
         return spendingLimit;
     }
 
-    public void setSpendingLimit(double spendingLimit) {
+    /**
+     * Sets spending limit.
+     *
+     * @param spendingLimit the spending limit
+     */
+    public void setSpendingLimit(final double spendingLimit) {
         this.spendingLimit = spendingLimit;
     }
 
+    /**
+     * Gets deposit limit.
+     *
+     * @return the deposit limit
+     */
     public double getDepositLimit() {
         return depositLimit;
     }
 
-    public void setDepositLimit(double depositLimit) {
+    /**
+     * Sets deposit limit.
+     *
+     * @param depositLimit the deposit limit
+     */
+    public void setDepositLimit(final double depositLimit) {
         this.depositLimit = depositLimit;
     }
 
+    /**
+     * Gets total deposited.
+     *
+     * @return the total deposited
+     */
     public double getTotalDeposited() {
         return totalDeposited;
     }
 
-    public void setTotalDeposited(double totalDeposited) {
+    /**
+     * Sets total deposited.
+     *
+     * @param totalDeposited the total deposited
+     */
+    public void setTotalDeposited(final double totalDeposited) {
         this.totalDeposited = totalDeposited;
     }
 
+    /**
+     * Gets total spent.
+     *
+     * @return the total spent
+     */
     public double getTotalSpent() {
         return totalSpent;
     }
 
-    public void setTotalSpent(double totalSpent) {
+    /**
+     * Sets total spent.
+     *
+     * @param totalSpent the total spent
+     */
+    public void setTotalSpent(final double totalSpent) {
         this.totalSpent = totalSpent;
     }
 
+    /**
+     * Gets manager deposits.
+     *
+     * @return the manager deposits
+     */
     public LinkedHashMap<String, Double> getManagerDeposits() {
         return managerDeposits;
     }
 
-    public void setManagerDeposits(LinkedHashMap<String, Double> managerDeposits) {
+    /**
+     * Sets manager deposits.
+     *
+     * @param managerDeposits the manager deposits
+     */
+    public void setManagerDeposits(final LinkedHashMap<String, Double> managerDeposits) {
         this.managerDeposits = managerDeposits;
     }
 
+    /**
+     * Gets manager spending.
+     *
+     * @return the manager spending
+     */
     public LinkedHashMap<String, Double> getManagerSpending() {
         return managerSpending;
     }
 
-    public void setManagerSpending(LinkedHashMap<String, Double> managerSpending) {
+    /**
+     * Sets manager spending.
+     *
+     * @param managerSpending the manager spending
+     */
+    public void setManagerSpending(final LinkedHashMap<String, Double> managerSpending) {
         this.managerSpending = managerSpending;
     }
 
+    /**
+     * Gets employee deposits.
+     *
+     * @return the employee deposits
+     */
     public LinkedHashMap<String, Double> getEmployeeDeposits() {
         return employeeDeposits;
     }
 
-    public void setEmployeeDeposits(LinkedHashMap<String, Double> employeeDeposits) {
+    /**
+     * Sets employee deposits.
+     *
+     * @param employeeDeposits the employee deposits
+     */
+    public void setEmployeeDeposits(final LinkedHashMap<String, Double> employeeDeposits) {
         this.employeeDeposits = employeeDeposits;
     }
 
+    /**
+     * Gets employee spending.
+     *
+     * @return the employee spending
+     */
     public LinkedHashMap<String, Double> getEmployeeSpending() {
         return employeeSpending;
     }
 
-    public void setEmployeeSpending(LinkedHashMap<String, Double> employeeSpending) {
+    /**
+     * Sets employee spending.
+     *
+     * @param employeeSpending the employee spending
+     */
+    public void setEmployeeSpending(final LinkedHashMap<String, Double> employeeSpending) {
         this.employeeSpending = employeeSpending;
     }
 
+    /**
+     * Gets out order for report manager.
+     *
+     * @return the out order for report manager
+     */
     public ArrayList<String> getOutOrderForReportManager() {
         return outOrderForReportManager;
     }
 
-    public void setOutOrderForReportManager(ArrayList<String> outOrderForReportManager) {
+    /**
+     * Sets out order for report manager.
+     *
+     * @param outOrderForReportManager the out order for report manager
+     */
+    public void setOutOrderForReportManager(final ArrayList<String> outOrderForReportManager) {
         this.outOrderForReportManager = outOrderForReportManager;
     }
 
+    /**
+     * Gets out order for report employee.
+     *
+     * @return the out order for report employee
+     */
     public ArrayList<String> getOutOrderForReportEmployee() {
         return outOrderForReportEmployee;
     }
 
-    public void setOutOrderForReportEmployee(ArrayList<String> outOrderForReportEmployee) {
+    /**
+     * Sets out order for report employee.
+     *
+     * @param outOrderForReportEmployee the out order for report employee
+     */
+    public void setOutOrderForReportEmployee(final ArrayList<String> outOrderForReportEmployee) {
         this.outOrderForReportEmployee = outOrderForReportEmployee;
     }
 
-    public void recordManagerDeposit(String name, double amount) {
+    /**
+     * Record manager deposit.
+     *
+     * @param name   the name
+     * @param amount the amount
+     */
+    public void recordManagerDeposit(final String name, final double amount) {
         managerDeposits.put(name, managerDeposits.getOrDefault(name, 0.0) + amount);
     }
 
-    public void recordManagerSpending(String name, double amount) {
+    /**
+     * Record manager spending.
+     *
+     * @param name   the name
+     * @param amount the amount
+     */
+    public void recordManagerSpending(final String name, final double amount) {
         managerSpending.put(name, managerSpending.getOrDefault(name, 0.0) + amount);
     }
 
-    public void recordEmployeeDeposit(String name, double amount) {
+    /**
+     * Record employee deposit.
+     *
+     * @param name   the name
+     * @param amount the amount
+     */
+    public void recordEmployeeDeposit(final String name, final double amount) {
         employeeDeposits.put(name, employeeDeposits.getOrDefault(name, 0.0) + amount);
     }
 
-    public void recordEmployeeSpending(String name, double amount) {
+    /**
+     * Record employee spending.
+     *
+     * @param name   the name
+     * @param amount the amount
+     */
+    public void recordEmployeeSpending(final String name, final double amount) {
         System.out.println(amount);
         employeeSpending.put(name, employeeSpending.getOrDefault(name, 0.0) + amount);
         System.out.println(employeeSpending.get(name));
     }
 
-    public void addTotalSpent(double amount) {
+    /**
+     * Add total spent.
+     *
+     * @param amount the amount
+     */
+    public void addTotalSpent(final double amount) {
         this.totalSpent += amount;
     }
 
-    public void addTotalDeposited(double amount) {
+    /**
+     * Add total deposited.
+     *
+     * @param amount the amount
+     */
+    public void addTotalDeposited(final double amount) {
         this.totalDeposited += amount;
     }
 
-    public boolean isOwner(final String Email) {
-        return ownerEmail.equals(Email);
+    /**
+     * Is owner boolean.
+     *
+     * @param email the email
+     * @return the boolean
+     */
+    public boolean isOwner(final String email) {
+        return ownerEmail.equals(email);
     }
 
-    public boolean isManager(final String Email) {
-        return managerEmails.contains(Email);
+    /**
+     * Is manager boolean.
+     *
+     * @param email the email
+     * @return the boolean
+     */
+    public boolean isManager(final String email) {
+        return managerEmails.contains(email);
     }
 
-    public boolean isEmployee(final String Email) {
-        return employeeEmails.contains(Email);
+    /**
+     * Is employee boolean.
+     *
+     * @param email the email
+     * @return the boolean
+     */
+    public boolean isEmployee(final String email) {
+        return employeeEmails.contains(email);
     }
 
-    public boolean isAssociate(final String Email) {
-        return (isOwner(Email) || isManager(Email) || isEmployee(Email));
+    /**
+     * Is associate boolean.
+     *
+     * @param email the email
+     * @return the boolean
+     */
+    public boolean isAssociate(final String email) {
+        return (isOwner(email) || isManager(email) || isEmployee(email));
     }
 }

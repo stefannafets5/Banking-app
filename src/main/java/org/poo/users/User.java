@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.time.LocalDate;
 import java.time.Period;
 
-import org.poo.commands.WithdrawSavings;
 import org.poo.fileio.CommandInput;
 import org.poo.users.transactions.*;
 import org.poo.users.transactions.Error;
+import org.poo.utils.Utils;
 
 /**
  * The type User.
@@ -29,6 +29,8 @@ public class User {
      * @param firstName the first name
      * @param lastName  the last name
      * @param email     the email
+     * @param birthDate the birth date
+     * @param ocupation the ocupation
      */
     public User(final String firstName, final String lastName, final String email,
                 final String birthDate, final String ocupation) {
@@ -37,7 +39,7 @@ public class User {
         this.email = email;
         this.birthDate = birthDate;
         this.ocupation = ocupation;
-        if (ocupation.equals("student")){
+        if (ocupation.equals("student")) {
             this.plan = "student";
         } else {
             this.plan = "standard";
@@ -134,38 +136,81 @@ public class User {
         this.transactions = transactions;
     }
 
+    /**
+     * Gets birth date.
+     *
+     * @return the birth date
+     */
     public String getBirthDate() {
         return birthDate;
     }
 
-    public void setBirthDate(String birthDate) {
+    /**
+     * Sets birth date.
+     *
+     * @param birthDate the birth date
+     */
+    public void setBirthDate(final String birthDate) {
         this.birthDate = birthDate;
     }
 
+    /**
+     * Gets ocupation.
+     *
+     * @return the ocupation
+     */
     public String getOcupation() {
         return ocupation;
     }
 
-    public void setOcupation(String ocupation) {
+    /**
+     * Sets ocupation.
+     *
+     * @param ocupation the ocupation
+     */
+    public void setOcupation(final String ocupation) {
         this.ocupation = ocupation;
     }
 
+    /**
+     * Gets plan.
+     *
+     * @return the plan
+     */
     public String getPlan() {
         return plan;
     }
 
-    public void setPlan(String plan) {
+    /**
+     * Sets plan.
+     *
+     * @param plan the plan
+     */
+    public void setPlan(final String plan) {
         this.plan = plan;
     }
 
+    /**
+     * Gets ron 300 payment.
+     *
+     * @return the ron 300 payment
+     */
     public int getRon300Payment() {
         return ron300Payment;
     }
 
-    public void setRon300Payment(int ron300Payment) {
+    /**
+     * Sets ron 300 payment.
+     *
+     * @param ron300Payment the ron 300 payment
+     */
+    public void setRon300Payment(final int ron300Payment) {
         this.ron300Payment = ron300Payment;
     }
 
+    /**
+     * Add 300 ron payment.
+     */
     public void add300RonPayment() {
         setRon300Payment(getRon300Payment() + 1);
     }
@@ -174,6 +219,7 @@ public class User {
      * Add account.
      *
      * @param input the input
+     * @param limit the limit
      */
     public void addAccount(final CommandInput input, final double limit) {
         if (input.getAccountType().equals("savings")) {
@@ -203,20 +249,31 @@ public class User {
         getAccounts().remove(index);
     }
 
-    public int verifyAge21(final String birthDate) {
-        if (Period.between(LocalDate.parse(birthDate), LocalDate.now()).getYears() >= 21) {
+    /**
+     * Verify age 21 int.
+     *
+     * @param birth the birth date
+     * @return the int
+     */
+    public int verifyAge21(final String birth) {
+        if (Period.between(LocalDate.parse(birth), LocalDate.now()).getYears() >= Utils.ADULT_AGE) {
             return 1;
         }
         return 0;
     }
 
-    public double checkCommision (final double amount, final double ronSpent) {
-        String plan = getPlan();
-
-        if (plan.equals("standard")) {
-            return amount * 0.002; // 0.2%
-        } else if (plan.equals("silver") && ronSpent >= 500) {
-            return amount * 0.001; // 0.1%
+    /**
+     * Check commision double.
+     *
+     * @param amount   the amount
+     * @param ronSpent the ron spent
+     * @return the double
+     */
+    public double checkCommission(final double amount, final double ronSpent) {
+        if (getPlan().equals("standard")) {
+            return amount * Utils.STANDARD_COMMISION; // 0.2%
+        } else if (getPlan().equals("silver") && ronSpent >= Utils.LIMIT) {
+            return amount * Utils.SILVER_COMMISION; // 0.1%
         }
         return 0;
     }
@@ -265,14 +322,20 @@ public class User {
     /**
      * Add split payment failed transaction.
      *
-     * @param input    the input
-     * @param poor     the poor
-     * @param fromIban the from iban
+     * @param input      the input
+     * @param poor       the poor
+     * @param type       the type
+     * @param fromIban   the from iban
+     * @param amountList the amount list
+     * @param amount     the amount
+     * @param isRejected the is rejected
      */
-    public void addSplitPaymentFailedTransaction(final CommandInput input, final String poor, final String type,
-                                                 final String fromIban, final ArrayList<Double> amountList,
+    public void addSplitPaymentFailedTransaction(final CommandInput input, final String poor,
+                                                 final String type, final String fromIban,
+                                                 final ArrayList<Double> amountList,
                                                  final double amount, final int isRejected) {
-        getTransactions().add(new SplitPaymentFailed(input, poor, fromIban, amountList, type, amount, isRejected));
+        getTransactions().add(new SplitPaymentFailed(input, poor, fromIban,
+                amountList, type, amount, isRejected));
     }
 
     /**
@@ -302,33 +365,69 @@ public class User {
     /**
      * Add split card payment transaction.
      *
-     * @param timestamp    the timestamp
-     * @param amountList   the amount list
-     * @param splitAmount  the split amount
-     * @param currency     the currency
-     * @param ibanList     the iban list
+     * @param timestamp   the timestamp
+     * @param amountList  the amount list
+     * @param splitAmount the split amount
+     * @param currency    the currency
+     * @param ibanList    the iban list
+     * @param type        the type
      */
-    public void addSplitCardPaymentTransaction(final int timestamp, final ArrayList<Double> amountList,
-                                                final double splitAmount, final String currency,
-                                                final ArrayList<String> ibanList, final String type) {
+    public void addSplitCardPaymentTransaction(final int timestamp,
+                                               final ArrayList<Double> amountList,
+                                               final double splitAmount, final String currency,
+                                               final ArrayList<String> ibanList,
+                                               final String type) {
         getTransactions().add(new SplitCardPayment(timestamp, amountList,
                               splitAmount, currency, ibanList, type));
     }
 
-    public void addUpgradePlanTransaction(final int timestamp, final String iban, final String plan) {
-        getTransactions().add(new UpgradePlan(timestamp, iban, plan));
+    /**
+     * Add upgrade plan transaction.
+     *
+     * @param timestamp     the timestamp
+     * @param iban          the iban
+     * @param upgradePlan   the plan
+     */
+    public void addUpgradePlanTransaction(final int timestamp, final String iban,
+                                          final String upgradePlan) {
+        getTransactions().add(new UpgradePlan(timestamp, iban, upgradePlan));
     }
 
+    /**
+     * Add cash withdrawal transaction.
+     *
+     * @param timestamp the timestamp
+     * @param amount    the amount
+     */
     public void addCashWithdrawalTransaction(final int timestamp, final double amount) {
         getTransactions().add(new WithdrawCash(timestamp, amount));
     }
 
-    public void addInterestTransaction(final int timestamp, final double amount, final String currency) {
+    /**
+     * Add interest transaction.
+     *
+     * @param timestamp the timestamp
+     * @param amount    the amount
+     * @param currency  the currency
+     */
+    public void addInterestTransaction(final int timestamp, final double amount,
+                                       final String currency) {
         getTransactions().add(new AddInterest(timestamp, amount, currency));
     }
 
-    public void addSavingsWithdrawalTransaction(final int timestamp, final String description, final double amount,
-                                                final String classicIban, final String savingsIban) {
-        getTransactions().add(new SavingsWithdrawal(timestamp, description, amount, classicIban, savingsIban));
+    /**
+     * Add savings withdrawal transaction.
+     *
+     * @param timestamp   the timestamp
+     * @param description the description
+     * @param amount      the amount
+     * @param classicIban the classic iban
+     * @param savingsIban the savings iban
+     */
+    public void addSavingsWithdrawalTransaction(final int timestamp, final String description,
+                                                final double amount, final String classicIban,
+                                                final String savingsIban) {
+        getTransactions().add(new SavingsWithdrawal(timestamp, description,
+                amount, classicIban, savingsIban));
     }
 }

@@ -3,7 +3,10 @@ package org.poo.commands;
 import org.poo.bank.Bank;
 import org.poo.fileio.CommandInput;
 
-public class WithdrawSavings implements Command {
+/**
+ * The type Withdraw savings.
+ */
+public final class WithdrawSavings implements Command {
     private Bank bank;
     private CommandInput input;
 

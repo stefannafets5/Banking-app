@@ -23,9 +23,13 @@ public final class SplitPaymentFailed extends Transaction {
     /**
      * Instantiates a new Split payment failed.
      *
-     * @param input    the input
-     * @param poor     the poor
-     * @param fromIban the from iban
+     * @param input      the input
+     * @param poor       the poor
+     * @param fromIban   the from iban
+     * @param amountList the amount list
+     * @param splitType  the split type
+     * @param amount     the amount
+     * @param isRejected the is rejected
      */
     public SplitPaymentFailed(final CommandInput input, final String poor, final String fromIban,
                               final ArrayList<Double> amountList, final String splitType,
@@ -46,27 +50,57 @@ public final class SplitPaymentFailed extends Transaction {
         setFromIban(fromIban);
     }
 
+    /**
+     * Gets amount.
+     *
+     * @return the amount
+     */
     public double getAmount() {
         return amount;
     }
 
-    public void setAmount(double amount) {
+    /**
+     * Sets amount.
+     *
+     * @param amount the amount
+     */
+    public void setAmount(final double amount) {
         this.amount = amount;
     }
 
+    /**
+     * Gets type.
+     *
+     * @return the type
+     */
     public String getType() {
         return type;
     }
 
-    public void setType(String type) {
+    /**
+     * Sets type.
+     *
+     * @param type the type
+     */
+    public void setType(final String type) {
         this.type = type;
     }
 
+    /**
+     * Gets amount list.
+     *
+     * @return the amount list
+     */
     public ArrayList<Double> getAmountList() {
         return amountList;
     }
 
-    public void setAmountList(ArrayList<Double> amountList) {
+    /**
+     * Sets amount list.
+     *
+     * @param amountList the amount list
+     */
+    public void setAmountList(final ArrayList<Double> amountList) {
         this.amountList = amountList;
     }
 
@@ -124,11 +158,21 @@ public final class SplitPaymentFailed extends Transaction {
         this.ibanList = ibanList;
     }
 
+    /**
+     * Gets is rejected.
+     *
+     * @return the is rejected
+     */
     public int getIsRejected() {
         return isRejected;
     }
 
-    public void setIsRejected(int isRejected) {
+    /**
+     * Sets is rejected.
+     *
+     * @param isRejected the is rejected
+     */
+    public void setIsRejected(final int isRejected) {
         this.isRejected = isRejected;
     }
 
@@ -139,8 +183,8 @@ public final class SplitPaymentFailed extends Transaction {
         if (getType().equals("custom")) {
             ArrayNode amountForUsers = mapper.createArrayNode();
 
-            for (Double amount : getAmountList()) {
-                amountForUsers.add(amount);
+            for (Double currentAmount : getAmountList()) {
+                amountForUsers.add(currentAmount);
             }
 
             txt.set("amountForUsers", amountForUsers);

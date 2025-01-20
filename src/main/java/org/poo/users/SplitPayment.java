@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * The type Split payment.
+ */
 public class SplitPayment {
     private CommandInput input;
     private ArrayList<String> ibanList;
@@ -20,7 +23,12 @@ public class SplitPayment {
     private String type;
     private int timestamp;
 
-    public SplitPayment(CommandInput input) {
+    /**
+     * Instantiates a new Split payment.
+     *
+     * @param input the input
+     */
+    public SplitPayment(final CommandInput input) {
         this.type = input.getSplitPaymentType();
         this.input = input;
         this.ibanList = new ArrayList<String>(input.getAccounts());
@@ -44,57 +52,116 @@ public class SplitPayment {
         this.isRejected = false;
     }
 
+    /**
+     * Gets is completed.
+     *
+     * @return the is completed
+     */
     public boolean getIsCompleted() {
         return isCompleted;
     }
 
+    /**
+     * Gets is rejected.
+     *
+     * @return the is rejected
+     */
     public boolean getIsRejected() {
         return isRejected;
     }
 
+    /**
+     * Gets type.
+     *
+     * @return the type
+     */
     public String getType() {
         return type;
     }
 
+    /**
+     * Gets input.
+     *
+     * @return the input
+     */
     public CommandInput getInput() {
         return input;
     }
 
+    /**
+     * Gets total amount.
+     *
+     * @return the total amount
+     */
     public double getTotalAmount() {
         return totalAmount;
     }
 
+    /**
+     * Gets timestamp.
+     *
+     * @return the timestamp
+     */
     public int getTimestamp() {
         return timestamp;
     }
 
-    private String getFrom(){
+    private String getFrom() {
         return from;
     }
 
+    /**
+     * Gets poor.
+     *
+     * @return the poor
+     */
     public String getPoor() {
         return poor;
     }
 
-    public void setPoor(String poor) {
+    /**
+     * Sets poor.
+     *
+     * @param poor the poor
+     */
+    public void setPoor(final String poor) {
         this.poor = poor;
     }
 
+    /**
+     * Gets iban list.
+     *
+     * @return the iban list
+     */
     public ArrayList<String> getIbanList() {
         return ibanList;
     }
 
+    /**
+     * Gets amount list.
+     *
+     * @return the amount list
+     */
     public ArrayList<Double> getAmountList() {
         return amountList;
     }
 
-    public void acceptPayment(String email, ArrayList<User> users, CurrencyConverter converter) {
+    /**
+     * Accept payment.
+     *
+     * @param email     the email
+     * @param users     the users
+     * @param converter the converter
+     */
+    public void acceptPayment(final String email, final ArrayList<User> users,
+                              final CurrencyConverter converter) {
         for (int i = 0; i < getIbanList().size(); i++) {
             String currentIban = getIbanList().get(i);
             for (User user : users) {
                 if (user.getEmail().equals(email)) {
                     for (Account currentAccount : user.getAccounts()) {
-                        if (currentAccount.getIban().equals(currentIban) && status.containsKey(currentIban)) {
+                        if (currentAccount.getIban().equals(currentIban)
+                                && status.containsKey(currentIban)) {
                                 status.put(currentIban, true);
                                 checkCompletion(users, converter);
                         }
@@ -104,13 +171,20 @@ public class SplitPayment {
         }
     }
 
-    public void rejectPayment(String email, ArrayList<User> users) {
+    /**
+     * Reject payment.
+     *
+     * @param email the email
+     * @param users the users
+     */
+    public void rejectPayment(final String email, final ArrayList<User> users) {
         for (int i = 0; i < getIbanList().size(); i++) {
             String currentIban = getIbanList().get(i);
             for (User user : users) {
                 if (user.getEmail().equals(email)) {
                     for (Account currentAccount : user.getAccounts()) {
-                        if (currentAccount.getIban().equals(currentIban) && status.containsKey(currentIban)) {
+                        if (currentAccount.getIban().equals(currentIban)
+                                && status.containsKey(currentIban)) {
                             status.put(currentIban, false);
                             this.isCompleted = true;
                             this.isRejected = true;
@@ -126,7 +200,8 @@ public class SplitPayment {
                     for (Account currentAccount : user.getAccounts()) {
                         if (currentAccount.getIban().equals(currentIban)) {
                             user.addSplitPaymentFailedTransaction(getInput(), getPoor(),
-                                    getType(), currentIban, getAmountList(), getTotalAmount(), 1);
+                                    getType(), currentIban,
+                                    getAmountList(), getTotalAmount(), 1);
                         }
                     }
                 }
@@ -134,9 +209,9 @@ public class SplitPayment {
         }
     }
 
-    private void checkCompletion(ArrayList<User> users, CurrencyConverter converter) {
+    private void checkCompletion(final ArrayList<User> users, final CurrencyConverter converter) {
         if (status.values().stream().allMatch(Boolean.TRUE::equals)) {
-            // if everyone accepted
+            // everyone accepted
             this.isCompleted = true;
             checkMoney(users, converter);
             if (getPoor().equals("nobody")) {
@@ -145,7 +220,7 @@ public class SplitPayment {
         }
     }
 
-    private void checkMoney(ArrayList<User> users, CurrencyConverter converter) {
+    private void checkMoney(final ArrayList<User> users, final CurrencyConverter converter) {
         // check if everyone can pay
         loop:
         for (int i = 0; i < getIbanList().size(); i++) {
@@ -169,7 +244,8 @@ public class SplitPayment {
             String currentIban = getIbanList().get(i);
             for (User user : users) {
                 for (Account currentAccount : user.getAccounts()) {
-                    if (currentAccount.getIban().equals(currentIban) && !getPoor().equals("nobody")) {
+                    if (currentAccount.getIban().equals(currentIban)
+                            && !getPoor().equals("nobody")) {
                         user.addSplitPaymentFailedTransaction(getInput(), getPoor(),
                                 getType(), currentIban, getAmountList(), getTotalAmount(), 0);
                     }
@@ -178,7 +254,7 @@ public class SplitPayment {
         }
     }
 
-    private void payMoney(ArrayList<User> users, CurrencyConverter converter) {
+    private void payMoney(final ArrayList<User> users, final CurrencyConverter converter) {
         // take the money out of the accounts
         for (int i = 0; i < getIbanList().size(); i++) {
             String currentIban = getIbanList().get(i);
@@ -188,17 +264,23 @@ public class SplitPayment {
                         String to = currentAccount.getCurrency();
                         double amountToBePayed =
                                 converter.convert(getAmountList().get(i), getFrom(), to);
-                        // TODO s-ar putea sa trebuiasca sa bag comision
                         currentAccount.subtractMoney(amountToBePayed);
-                        user.addSplitCardPaymentTransaction(getTimestamp(),
-                                getAmountList(), getTotalAmount(), getFrom(), getIbanList(), getType());
+                        user.addSplitCardPaymentTransaction(getTimestamp(), getAmountList(),
+                                getTotalAmount(), getFrom(), getIbanList(), getType());
                     }
                 }
             }
         }
     }
 
-    public Boolean getStatusForEmail(String email, ArrayList<User> users) {
+    /**
+     * Gets status for email.
+     *
+     * @param email the email
+     * @param users the users
+     * @return the status for email
+     */
+    public Boolean getStatusForEmail(final String email, final ArrayList<User> users) {
         for (int i = 0; i < getIbanList().size(); i++) {
             String currentIban = getIbanList().get(i);
             for (User user : users) {

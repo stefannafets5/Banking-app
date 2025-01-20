@@ -3,6 +3,9 @@ package org.poo.fileio;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * The type Exchange input.
+ */
 @Data
 @NoArgsConstructor
 public final class ExchangeInput {

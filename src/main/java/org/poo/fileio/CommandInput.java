@@ -5,6 +5,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * The type Command input.
+ */
 @Data
 @NoArgsConstructor
 public final class CommandInput {

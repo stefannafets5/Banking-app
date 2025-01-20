@@ -6,6 +6,9 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 
 import java.io.IOException;
 
+/**
+ * The type Double deserializer.
+ */
 public final class DoubleDeserializer extends JsonDeserializer<Double> {
     private static final String SEPARATOR = ".";
     private static final int HAS_TWO_SIDES = 2;

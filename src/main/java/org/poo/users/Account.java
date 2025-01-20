@@ -2,7 +2,10 @@ package org.poo.users;
 
 import java.util.ArrayList;
 
+import org.poo.commerciants.CashbackStrategy;
 import org.poo.commerciants.Commerciant;
+import org.poo.commerciants.SpendingThresholdStrategy;
+import org.poo.commerciants.TransactionsStrategy;
 import org.poo.fileio.CommandInput;
 import org.poo.users.transactions.Transaction;
 import org.poo.utils.Utils;
@@ -163,46 +166,99 @@ public class Account {
         this.minBalance = minBalance;
     }
 
+    /**
+     * Gets money spent.
+     *
+     * @return the money spent
+     */
     public double getMoneySpent() {
         return moneySpent;
     }
 
-    public void setMoneySpent(double moneySpent) {
+    /**
+     * Sets money spent.
+     *
+     * @param moneySpent the money spent
+     */
+    public void setMoneySpent(final double moneySpent) {
         this.moneySpent = moneySpent;
     }
 
+    /**
+     * Gets nr of transactions.
+     *
+     * @return the nr of transactions
+     */
     public int getNrOfTransactions() {
         return nrOfTransactions;
     }
 
-    public void setNrOfTransactions(int nrOfTransactions) {
+    /**
+     * Sets nr of transactions.
+     *
+     * @param nrOfTransactions the nr of transactions
+     */
+    public void setNrOfTransactions(final int nrOfTransactions) {
         this.nrOfTransactions = nrOfTransactions;
     }
 
+    /**
+     * Gets discount food.
+     *
+     * @return the discount food
+     */
     public int getDiscountFood() {
         return discountFood;
     }
 
-    public void setDiscountFood(int discountFood) {
+    /**
+     * Sets discount food.
+     *
+     * @param discountFood the discount food
+     */
+    public void setDiscountFood(final int discountFood) {
         this.discountFood = discountFood;
     }
 
+    /**
+     * Gets discount clothes.
+     *
+     * @return the discount clothes
+     */
     public int getDiscountClothes() {
         return discountClothes;
     }
 
-    public void setDiscountClothes(int discountClothes) {
+    /**
+     * Sets discount clothes.
+     *
+     * @param discountClothes the discount clothes
+     */
+    public void setDiscountClothes(final int discountClothes) {
         this.discountClothes = discountClothes;
     }
 
+    /**
+     * Gets discount tech.
+     *
+     * @return the discount tech
+     */
     public int getDiscountTech() {
         return discountTech;
     }
 
-    public void setDiscountTech(int discountTech) {
+    /**
+     * Sets discount tech.
+     *
+     * @param discountTech the discount tech
+     */
+    public void setDiscountTech(final int discountTech) {
         this.discountTech = discountTech;
     }
 
+    /**
+     * Add commerciant transaction.
+     */
     public void addCommerciantTransaction() {
         this.nrOfTransactions++;
     }
@@ -225,10 +281,20 @@ public class Account {
         this.balance -= amount;
     }
 
+    /**
+     * Add money spent.
+     *
+     * @param amount the amount
+     */
     public void addMoneySpent(final double amount) {
         this.moneySpent += amount;
     }
 
+    /**
+     * Subtract money spent.
+     *
+     * @param amount the amount
+     */
     public void subtractMoneySpent(final double amount) {
         this.moneySpent -= amount;
     }
@@ -236,12 +302,14 @@ public class Account {
     /**
      * Add card.
      *
-     * @param input        the input
-     * @param cardType     the type
-     * @param transactions the transactions
-     * @param description  the description
+     * @param input            the input
+     * @param cardType         the type
+     * @param emailCardCreator the email card creator
+     * @param transactions     the transactions
+     * @param description      the description
      */
-    public void addCard(final CommandInput input, final String cardType, final String emailCardCreator,
+    public void addCard(final CommandInput input, final String cardType,
+                        final String emailCardCreator,
                          final ArrayList<Transaction> transactions, final String description) {
         Card card = new Card(cardType, emailCardCreator);
 
@@ -267,60 +335,34 @@ public class Account {
         getCards().remove(index);
     }
 
-    public double checkForCashback (final String name, final ArrayList<Commerciant> commerciants,
+    /**
+     * Check for cashback double.
+     *
+     * @param name         the name
+     * @param commerciants the commerciants
+     * @param amount       the amount
+     * @param plan         the plan
+     * @param account      the account
+     * @return the double
+     */
+    public double checkForCashback(final String name, final ArrayList<Commerciant> commerciants,
                                     final double amount, final String plan, final Account account) {
         String strategy = "";
-        String type = "";
+        String strategyType = "";
 
         for (Commerciant commerciant : commerciants) {
             if (commerciant.getName().equals(name)) {
                 strategy = commerciant.getCashbackStrategy();
-                type = commerciant.getType();
+                strategyType = commerciant.getType();
             }
         }
+        CashbackStrategy cashbackStrategy;
         if (strategy.equals("nrOfTransactions")) {
-            if (getNrOfTransactions() > 2 && getDiscountFood() == 0 && type.equals("Food")){
-                setDiscountFood(1);
-                return amount * 0.98;
-            }
-            if (getNrOfTransactions() > 5 && getDiscountClothes() == 0 && type.equals("Clothes")) {
-                setDiscountClothes(1);
-                return amount * 0.95;
-            }
-            if (getNrOfTransactions() > 10 && getDiscountTech() == 0 && type.equals("Tech")) {
-                setDiscountTech(1);
-                return amount * 0.9;
-            }
-        } else { // spendingThreshold
-            if (account.getMoneySpent() >= 500) {
-                account.subtractMoneySpent(500);
-                if (plan.equals("standard") || plan.equals("student")) {
-                    return amount * 0.9975;
-                } else if (plan.equals("silver")) {
-                    return amount * 0.995;
-                } else { // gold
-                    return amount * 0.993;
-                }
-            } else if (account.getMoneySpent() >= 300) {
-                account.subtractMoneySpent(300);
-                if (plan.equals("standard") || plan.equals("student")) {
-                    return amount * 0.998;
-                } else if (plan.equals("silver")) {
-                    return amount * 0.996;
-                } else { // gold
-                    return amount * 0.9945;
-                }
-            } else if (account.getMoneySpent() >= 100) {
-                account.subtractMoneySpent(100);
-                if (plan.equals("standard") || plan.equals("student")) {
-                    return amount * 0.999;
-                } else if (plan.equals("silver")) {
-                    return amount * 0.997;
-                } else { // gold
-                    return amount * 0.995;
-                }
-            }
+            cashbackStrategy = new TransactionsStrategy();
+        } else {
+            cashbackStrategy = new SpendingThresholdStrategy();
         }
-        return amount;
+        return cashbackStrategy.calculateCashback(amount, strategyType,
+                plan, account, getNrOfTransactions());
     }
 }

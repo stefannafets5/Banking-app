@@ -18,6 +18,8 @@ public final class Test {
     }
 
     /**
+     * Main.
+     *
      * @param args input files
      * @throws IOException in case of exceptions to reading / writing
      */

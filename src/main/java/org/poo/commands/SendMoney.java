@@ -17,6 +17,7 @@ public final class SendMoney implements Command {
      *
      * @param bank  the bank
      * @param input the input
+     * @param out   the out
      */
     public SendMoney(final Bank bank, final CommandInput input, final ConverterJson out) {
         this.input = input;

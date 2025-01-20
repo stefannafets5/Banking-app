@@ -19,14 +19,16 @@ public final class SplitCardPayment extends Transaction {
     /**
      * Instantiates a new Split card payment.
      *
-     * @param timestamp    the timestamp
-     * @param amountList   the amount list
-     * @param splitAmount  the split amount
-     * @param currency     the currency
-     * @param ibanList     the iban list
+     * @param timestamp   the timestamp
+     * @param amountList  the amount list
+     * @param splitAmount the split amount
+     * @param currency    the currency
+     * @param ibanList    the iban list
+     * @param type        the type
      */
-    public SplitCardPayment(final int timestamp, final ArrayList<Double> amountList, final double splitAmount,
-                            final String currency, final ArrayList<String> ibanList, final String type) {
+    public SplitCardPayment(final int timestamp, final ArrayList<Double> amountList,
+                            final double splitAmount, final String currency,
+                            final ArrayList<String> ibanList, final String type) {
         super(timestamp, "Split payment of " + splitAmount + "0 " + currency);
         this.amountList = amountList;
         this.currency = currency;
@@ -38,11 +40,21 @@ public final class SplitCardPayment extends Transaction {
         }
     }
 
+    /**
+     * Gets amount list.
+     *
+     * @return the amount list
+     */
     public ArrayList<Double> getAmountList() {
         return amountList;
     }
 
-    public void setAmountList(ArrayList<Double> amountList) {
+    /**
+     * Sets amount list.
+     *
+     * @param amountList the amount list
+     */
+    public void setAmountList(final ArrayList<Double> amountList) {
         this.amountList = amountList;
     }
 
@@ -100,11 +112,21 @@ public final class SplitCardPayment extends Transaction {
         this.splitAmount = splitAmount;
     }
 
+    /**
+     * Gets type.
+     *
+     * @return the type
+     */
     public String getType() {
         return type;
     }
 
-    public void setType(String type) {
+    /**
+     * Sets type.
+     *
+     * @param type the type
+     */
+    public void setType(final String type) {
         this.type = type;
     }
 

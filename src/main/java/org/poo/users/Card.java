@@ -16,10 +16,11 @@ public class Card {
     private String emailCardCreator;
 
     /**
+     * Instantiates a new Card.
      *
-     * @param type the type
+     * @param type             the type
+     * @param emailCardCreator the email card creator
      */
-
     public Card(final String type, final String emailCardCreator) {
         this.status = "active";
         this.cardNumber = Utils.generateCardNumber();
@@ -81,18 +82,28 @@ public class Card {
         this.type = type;
     }
 
+    /**
+     * Gets email card creator.
+     *
+     * @return the email card creator
+     */
     public String getEmailCardCreator() {
         return emailCardCreator;
     }
 
-    public void setEmailCardCreator(String emailCardCreator) {
+    /**
+     * Sets email card creator.
+     *
+     * @param emailCardCreator the email card creator
+     */
+    public void setEmailCardCreator(final String emailCardCreator) {
         this.emailCardCreator = emailCardCreator;
     }
 
     /**
      * Add card creation transaction.
      *
-     * @param time    the timestamp
+     * @param time         the timestamp
      * @param email        the email
      * @param iban         the iban
      * @param transactions the transactions

@@ -4,7 +4,10 @@ import org.poo.bank.Bank;
 import org.poo.converter.ConverterJson;
 import org.poo.fileio.CommandInput;
 
-public class RejectSplitPayment implements Command {
+/**
+ * The type Reject split payment.
+ */
+public final class RejectSplitPayment implements Command {
     private Bank bank;
     private CommandInput input;
     private ConverterJson out;
@@ -14,6 +17,7 @@ public class RejectSplitPayment implements Command {
      *
      * @param bank  the bank
      * @param input the input
+     * @param out   the out
      */
     public RejectSplitPayment(final Bank bank, final CommandInput input, final ConverterJson out) {
         this.input = input;

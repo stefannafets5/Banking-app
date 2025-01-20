@@ -12,7 +12,6 @@ import org.poo.users.Account;
 import org.poo.users.Card;
 import org.poo.users.transactions.CardPayment;
 import org.poo.users.transactions.Transaction;
-import org.poo.converter.CurrencyConverter;
 
 import java.util.*;
 
@@ -190,12 +189,14 @@ public final class ConverterJson {
      * Create report.
      *
      * @param transactions the transactions
+     * @param commerciants the commerciants
      * @param input        the input
      * @param account      the account
      * @param type         the type
      */
-    public void createReport(final ArrayList<Transaction> transactions, final ArrayList<Commerciant> commerciants,
-                             final CommandInput input, final Account account, final String type) {
+    public void createReport(final ArrayList<Transaction> transactions,
+                             final ArrayList<Commerciant> commerciants, final CommandInput input,
+                             final Account account, final String type) {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode txt = mapper.createObjectNode();
 
@@ -249,7 +250,8 @@ public final class ConverterJson {
                         && pay.getTimestamp() <= input.getEndTimestamp()
                         && pay.getIban().equals(account.getIban())) {
                     // add the amount payed in each transaction to the commerciant
-                    transactionsByCommerciant.merge(pay.getCommerciant(), pay.getAmount(), Double::sum);
+                    transactionsByCommerciant.merge(pay.getCommerciant(),
+                            pay.getAmount(), Double::sum);
                 }
             }
             ArrayNode commerciantsList = mapper.createArrayNode();
@@ -279,12 +281,14 @@ public final class ConverterJson {
                     String managerName = Bank.getNameByEmail(managerEmail);
                     if ((business.getManagerDeposits().get(managerName) != null
                         && business.getManagerDeposits().get(managerName) != 0)
-                        ||(business.getManagerSpending().get(managerName) != null
+                        || (business.getManagerSpending().get(managerName) != null
                         && business.getManagerSpending().get(managerName) != 0)) {
                         ObjectNode managerNode = mapper.createObjectNode();
                         managerNode.put("username", managerName);
-                        managerNode.put("deposited", business.getManagerDeposits().getOrDefault(managerName, 0.0));
-                        managerNode.put("spent", business.getManagerSpending().getOrDefault(managerName, 0.0));
+                        managerNode.put("deposited", business.getManagerDeposits().
+                                getOrDefault(managerName, 0.0));
+                        managerNode.put("spent", business.getManagerSpending().
+                                getOrDefault(managerName, 0.0));
                         managersNode.add(managerNode);
                     }
                 }
@@ -306,12 +310,14 @@ public final class ConverterJson {
                     String employeeName = Bank.getNameByEmail(employeeEmail);
                     if ((business.getEmployeeDeposits().get(employeeName) != null
                             && business.getEmployeeDeposits().get(employeeName) != 0)
-                            ||(business.getEmployeeSpending().get(employeeName) != null
+                            || (business.getEmployeeSpending().get(employeeName) != null
                             && business.getEmployeeSpending().get(employeeName) != 0)) {
                         ObjectNode employeeNode = mapper.createObjectNode();
                         employeeNode.put("username", employeeName);
-                        employeeNode.put("deposited", business.getEmployeeDeposits().getOrDefault(employeeName, 0.0));
-                        employeeNode.put("spent", business.getEmployeeSpending().getOrDefault(employeeName, 0.0));
+                        employeeNode.put("deposited", business.getEmployeeDeposits().
+                                getOrDefault(employeeName, 0.0));
+                        employeeNode.put("spent", business.getEmployeeSpending().
+                                getOrDefault(employeeName, 0.0));
                         employeesNode.add(employeeNode);
                     }
                 }
