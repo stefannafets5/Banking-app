@@ -293,7 +293,6 @@ public class Account {
             }
         } else { // spendingThreshold
             if (account.getMoneySpent() >= 500) {
-                //TODO S-ar putea sa trebuieasca sa resetez money spent
                 account.subtractMoneySpent(500);
                 if (plan.equals("standard") || plan.equals("student")) {
                     return amount * 0.9975;

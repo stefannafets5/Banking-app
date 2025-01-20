@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.time.LocalDate;
 import java.time.Period;
 
+import org.poo.commands.WithdrawSavings;
 import org.poo.fileio.CommandInput;
 import org.poo.users.transactions.*;
 import org.poo.users.transactions.Error;
@@ -18,6 +19,7 @@ public class User {
     private String birthDate;
     private String ocupation;
     private String plan;
+    private int ron300Payment = 0;
     private ArrayList<Account> accounts = new ArrayList<>();
     private ArrayList<Transaction> transactions = new ArrayList<>();
 
@@ -156,6 +158,18 @@ public class User {
         this.plan = plan;
     }
 
+    public int getRon300Payment() {
+        return ron300Payment;
+    }
+
+    public void setRon300Payment(int ron300Payment) {
+        this.ron300Payment = ron300Payment;
+    }
+
+    public void add300RonPayment() {
+        setRon300Payment(getRon300Payment() + 1);
+    }
+
     /**
      * Add account.
      *
@@ -166,16 +180,18 @@ public class User {
             SavingsAccount account = new SavingsAccount(input.getCurrency(),
                     input.getAccountType(), input.getInterestRate());
             getAccounts().add(account);
+            addAccountCreationTransaction(input.getTimestamp());
         } else if (input.getAccountType().equals("classic")) {
             Account account = new Account(input.getCurrency(), input.getAccountType());
             getAccounts().add(account);
+            addAccountCreationTransaction(input.getTimestamp());
         } else { // business account
             BusinessAccount account = new BusinessAccount(input.getCurrency(),
                     input.getAccountType(), input.getEmail());
-            account.setConvertedDepositLimit(limit);
+            account.setDepositLimit(limit);
+            account.setSpendingLimit(limit);
             getAccounts().add(account);
         }
-        addAccountCreationTransaction(input.getTimestamp());
     }
 
     /**
@@ -255,8 +271,8 @@ public class User {
      */
     public void addSplitPaymentFailedTransaction(final CommandInput input, final String poor, final String type,
                                                  final String fromIban, final ArrayList<Double> amountList,
-                                                 final double amount) {
-        getTransactions().add(new SplitPaymentFailed(input, poor, fromIban, amountList, type, amount));
+                                                 final double amount, final int isRejected) {
+        getTransactions().add(new SplitPaymentFailed(input, poor, fromIban, amountList, type, amount, isRejected));
     }
 
     /**
@@ -309,5 +325,10 @@ public class User {
 
     public void addInterestTransaction(final int timestamp, final double amount, final String currency) {
         getTransactions().add(new AddInterest(timestamp, amount, currency));
+    }
+
+    public void addSavingsWithdrawalTransaction(final int timestamp, final String description, final double amount,
+                                                final String classicIban, final String savingsIban) {
+        getTransactions().add(new SavingsWithdrawal(timestamp, description, amount, classicIban, savingsIban));
     }
 }

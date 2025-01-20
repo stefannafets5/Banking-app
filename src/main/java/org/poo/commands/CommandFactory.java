@@ -40,13 +40,13 @@ public class CommandFactory {
             case "spendingsReport" -> new SpendingsReport(bank, input, out);
             case "businessReport" -> new BusinessReport(bank, input, out);
             case "withdrawSavings" -> new WithdrawSavings(bank, input);
-            case "upgradePlan" -> new UpgradePlan(bank, input);
+            case "upgradePlan" -> new UpgradePlan(bank, input, out);
             case "cashWithdrawal" -> new CashWithdrawal(bank, input, out);
-            case "acceptSplitPayment" -> new AcceptSplitPayment(bank, input);
-            case "rejectSplitPayment" -> new RejectSplitPayment(bank, input);
+            case "acceptSplitPayment" -> new AcceptSplitPayment(bank, input,out);
+            case "rejectSplitPayment" -> new RejectSplitPayment(bank, input, out);
             case "addNewBusinessAssociate" -> new AddBusinessAssociate(bank, input);
-            case "changeSpendingLimit" -> new ChangeSpendingLimit(bank, input);
-            case "changeDepositLimit" -> new ChangeDepositLimit(bank, input);
+            case "changeSpendingLimit" -> new ChangeSpendingLimit(bank, input, out);
+            case "changeDepositLimit" -> new ChangeDepositLimit(bank, input, out);
             default -> new TestCeva("nu e comanda");//throw new IllegalArgumentException("The command is not recognized");
         };
     }

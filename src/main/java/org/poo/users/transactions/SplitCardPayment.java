@@ -116,8 +116,11 @@ public final class SplitCardPayment extends Transaction {
         for (Double amount : getAmountList()) {
             amountForUsers.add(amount);
         }
-
-        txt.set("amountForUsers", amountForUsers);
+        if (type.equals("custom")) {
+            txt.set("amountForUsers", amountForUsers);
+        } else {
+            txt.put("amount", getAmountList().getFirst());
+        }
         txt.put("timestamp", getTimestamp());
         txt.put("description", getDescription());
         txt.put("currency", getCurrency());

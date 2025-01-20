@@ -1,11 +1,16 @@
 package org.poo.commerciants;
 
+import java.util.ArrayList;
+
 public class Commerciant {
     private String name;
     private int id;
     private String iban;
     private String type;
     private String cashbackStrategy;
+    private ArrayList<String> managerList;
+    private ArrayList<String> employeeList;
+    private double businessMoneySpent = 0;
 
     public Commerciant(String name, int id, String iban, String type, String cashbackStrategy) {
         this.name = name;
@@ -13,6 +18,8 @@ public class Commerciant {
         this.iban = iban;
         this.type = type;
         this.cashbackStrategy = cashbackStrategy;
+        this.managerList = new ArrayList<>();
+        this.employeeList = new ArrayList<>();
     }
 
     public String getName() {
@@ -55,4 +62,27 @@ public class Commerciant {
         this.cashbackStrategy = cashbackStrategy;
     }
 
+    public ArrayList<String> getManagerList() {
+        return managerList;
+    }
+
+    public void setManagerList(ArrayList<String> managerList) {
+        this.managerList = managerList;
+    }
+
+    public ArrayList<String> getEmployeeList() {
+        return employeeList;
+    }
+
+    public void setEmployeeList(ArrayList<String> employeeList) {
+        this.employeeList = employeeList;
+    }
+
+    public double getBusinessMoneySpent() {
+        return businessMoneySpent;
+    }
+
+    public void setBusinessMoneySpent(double businessMoneySpent) {
+        this.businessMoneySpent = businessMoneySpent;
+    }
 }

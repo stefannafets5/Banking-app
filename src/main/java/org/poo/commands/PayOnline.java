@@ -27,7 +27,7 @@ public final class PayOnline implements Command {
 
     @Override
     public void execute() {
-        if (bank.payOnline(input) == 2) {
+        if (bank.payOnline(input, out) == 2) {
             out.printError(input.getTimestamp(), "payOnline", "Card not found");
         }
     }

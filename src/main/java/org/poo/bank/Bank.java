@@ -83,8 +83,8 @@ public final class Bank {
         instance = null;
     }
 
-    public String getNameByEmail(final String email) {
-        for (User user : users) {
+    public static String getNameByEmail(final String email) {
+        for (User user : instance.getUsers()) {
             if (user.getEmail().equals(email)) {
                 return user.getLastName() + " " + user.getFirstName();
             }
@@ -175,12 +175,23 @@ public final class Bank {
                     if (currentAccount.getType().equals("business")) {
                         BusinessAccount businessAccount = (BusinessAccount) currentAccount;
                         if (!businessAccount.isOwner(input.getEmail())) {
-                            businessAccount.addTotalDeposited(input.getAmount());
                             if (businessAccount.isManager(input.getEmail())) {
+                                if (!businessAccount.getOutOrderForReportManager().contains(getNameByEmail(input.getEmail()))) {
+                                    businessAccount.getOutOrderForReportManager().add(getNameByEmail(input.getEmail()));
+                                }
+                                businessAccount.addTotalDeposited(input.getAmount());
                                 businessAccount.recordManagerDeposit(getNameByEmail(input.getEmail()), input.getAmount());
-                            } else if (businessAccount.isEmployee(input.getEmail())) {
+                                currentAccount.addMoney(input.getAmount());
+                            } else if (businessAccount.isEmployee(input.getEmail())
+                                    && businessAccount.getDepositLimit() >= input.getAmount()) {
+                                if (!businessAccount.getOutOrderForReportEmployee().contains(getNameByEmail(input.getEmail()))) {
+                                    businessAccount.getOutOrderForReportEmployee().add(getNameByEmail(input.getEmail()));
+                                }
+                                businessAccount.addTotalDeposited(input.getAmount());
                                 businessAccount.recordEmployeeDeposit(getNameByEmail(input.getEmail()), input.getAmount());
+                                currentAccount.addMoney(input.getAmount());
                             }
+                            break;
                         }
                     }
                     currentAccount.addMoney(input.getAmount());
@@ -283,7 +294,7 @@ public final class Bank {
         }
     }
 
-    public void upgradePlan(final CommandInput input) {
+    public void upgradePlan(final CommandInput input, final ConverterJson out) {
         String newPlan = input.getNewPlanType();
         String iban = input.getAccount();
         int timestamp = input.getTimestamp();
@@ -296,6 +307,7 @@ public final class Bank {
                     accountFound = 1;
                     if (user.getPlan().equals(newPlan)) {
                         // are deja planul asta
+                        user.addErrorTransaction(timestamp, "The user already has the " + user.getPlan() + " plan.");
                         return;
                     } else if (user.getPlan().equals("gold")) {
                         // nu poti da downgrade
@@ -306,9 +318,9 @@ public final class Bank {
                     } else if (user.getPlan().equals("silver") && newPlan.equals("gold")) {
                         // upgrade silver -> gold 250 RON
                         double moneyToPay = getMoneyConverter().convert(250, "RON", to);
-                        //TODO s-ar putea sa trebuiasca sa verific balanta minima si sa pun comision
+                        //TODO s-ar putea sa trebuiasca sa verific balanta minima
                         if (currentAccount.getBalance() < moneyToPay) {
-                            // nu are destui bani
+                            user.addErrorTransaction(timestamp, "Insufficient funds");
                             return;
                         } else {
                             currentAccount.subtractMoney(moneyToPay);
@@ -320,12 +332,9 @@ public final class Bank {
                                 && newPlan.equals("gold")) {
                         // upgrade standard -> gold 350 RON
                         double moneyToPay = getMoneyConverter().convert(350, "RON", to);
-//                        if (user.getPlan().equals("standard")) {// comision
-//                            moneyToPay = moneyToPay * 1.002;
-//                        }
-                        //TODO s-ar putea sa trebuiasca sa verific balanta minima si sa pun comision
+                        //TODO s-ar putea sa trebuiasca sa verific balanta minima
                         if (currentAccount.getBalance() < moneyToPay) {
-                            // nu are destui bani
+                            user.addErrorTransaction(timestamp, "Insufficient funds");
                             return;
                         } else {
                             currentAccount.subtractMoney(moneyToPay);
@@ -337,12 +346,9 @@ public final class Bank {
                                 && newPlan.equals("silver")) {
                         // upgrade standard -> silver 100 RON
                         double moneyToPay = getMoneyConverter().convert(100, "RON", to);
-//                        if (user.getPlan().equals("standard")) { // comision
-//                            moneyToPay = moneyToPay * 1.002;
-//                        }
-                        //TODO s-ar putea sa trebuiasca sa verific balanta minima si sa pun comision
+                        //TODO s-ar putea sa trebuiasca sa verific balanta minima
                         if (currentAccount.getBalance() < moneyToPay) {
-                            // nu are destui bani
+                            user.addErrorTransaction(timestamp, "Insufficient funds");
                             return;
                         } else {
                             currentAccount.subtractMoney(moneyToPay);
@@ -355,8 +361,7 @@ public final class Bank {
             }
         }
         if (accountFound == 0) {
-            // nu exista contul
-            return;
+            out.printError(timestamp, "upgradePlan", "Account not found");
         }
     }
 
@@ -389,14 +394,10 @@ public final class Bank {
                             return;
                         }
                         if (role.equals("manager")) {
-                            //businessAccount.getManagerDeposits().putIfAbsent(getNameByEmail(email), 0.0);
-                            // businessAccount.getManagerSpending().putIfAbsent(getNameByEmail(email), 0.0);
                             businessAccount.getManagerEmails().add(email);
                             return;
                         }
                         if (role.equals("employee")) {
-                            //businessAccount.getEmployeeDeposits().putIfAbsent(getNameByEmail(email), 0.0);
-                            //businessAccount.getEmployeeSpending().putIfAbsent(getNameByEmail(email), 0.0);
                             businessAccount.getEmployeeEmails().add(email);
                             return;
                         }
@@ -410,7 +411,7 @@ public final class Bank {
         }
     }
 
-    public void changeLimit(final CommandInput input) {
+    public void changeLimit(final CommandInput input, final ConverterJson out) {
         String command = input.getCommand();
         String ibanContBusiness = input.getAccount();
         String email = input.getEmail();
@@ -445,6 +446,13 @@ public final class Bank {
                             }
                         } else {
                             // You are not authorized to make this transaction
+                            if (command.equals("changeSpendingLimit")) {
+                                out.printError(timestamp, "changeSpendingLimit",
+                                        "You must be owner in order to change spending limit.");
+                            } else {
+                                out.printError(timestamp, "changeDepositLimit",
+                                        "You must be owner in order to change deposit limit");
+                            }
                             return;
                         }
                     }
@@ -463,7 +471,7 @@ public final class Bank {
      * @param input the input
      * @return int
      */
-    public int payOnline(final CommandInput input) {
+    public int payOnline(final CommandInput input, final ConverterJson out) {
         String cardNr = input.getCardNumber();
         double amount = input.getAmount();
         String from = input.getCurrency();
@@ -472,7 +480,7 @@ public final class Bank {
         String email = input.getEmail();
         int commerciantSpendingThreshold = 0;
         int found = 0;
-        int isBusiness = 0; // = 1 daca cardul dat apartine unui cont de business
+        int isBusiness = 0;
 
         if (amount == 0) {
             return 0;
@@ -496,6 +504,7 @@ public final class Bank {
                     Card currentCard = currentAccount.getCards().get(i);
                     if (currentCard.getCardNumber().equals(cardNr) && currentAccountBusiness == 1) {
                         isBusiness = 1;
+                        break;
                     }
                 }
             }
@@ -528,6 +537,13 @@ public final class Bank {
                                 currentAccount.addCommerciantTransaction();
                                 user.addCardPaymentTransaction(timestamp, amountToBePayed,
                                         commerciant, currentAccount.getIban());
+                                if (ronSpent >= 300) {
+                                    user.add300RonPayment();
+                                }
+                                if (user.getRon300Payment() >= 5 && user.getPlan().equals("silver")) {
+                                    user.setPlan("gold");
+                                    user.addUpgradePlanTransaction(timestamp, currentAccount.getIban(), "gold");
+                                }
                                 if (currentCard.getType().equals("oneTime")) {
                                     currentAccount.removeCard(i, input, user.getEmail(),
                                             user.getTransactions(), "The card has been destroyed");
@@ -559,6 +575,28 @@ public final class Bank {
         int timestamp = input.getTimestamp();
         String commerciant = input.getCommerciant();
         String email = input.getEmail();
+        int found = 0;
+        String name = getNameByEmail(email);
+
+        for (User user : users) {
+            for (Account currentAccount : user.getAccounts()) {
+                if (currentAccount.getType().equals("business")) {
+                    BusinessAccount businessAccount = (BusinessAccount) currentAccount;
+                    for (int i = 0; i < currentAccount.getCards().size(); i++) {
+                        Card currentCard = currentAccount.getCards().get(i);
+                        if (currentCard.getCardNumber().equals(cardNr) && businessAccount.isAssociate(email)) {
+                            found = 1;
+                        }
+                    }
+                }
+            }
+        }
+        if (found == 0) {
+            return 2;
+        }
+
+
+        System.out.println(email+" vrea sa plateasca "+amount+" la timpul "+timestamp);
 
         for (User user : users) {
             for (Account currentAccount : user.getAccounts()) {
@@ -572,8 +610,7 @@ public final class Bank {
                         Card currentCard = currentAccount.getCards().get(i);
                         if (currentCard.getCardNumber().equals(cardNr)) {
                             double ronSpent = getMoneyConverter().convert(amount, from, "RON");
-                            if (isManagerOrOwner || (isEmployee && ronSpent <= limit &&
-                                    currentCard.getEmailCardCreator().equals(email))) {
+                            if (isManagerOrOwner || (isEmployee && ronSpent <= limit)) {
                                 // daca e employee, trebuie sa fi creat el cardul si sa plateasca <= limita
                                 String to = currentAccount.getCurrency();
                                 double amountToBePayed = getMoneyConverter().convert(amount, from, to);
@@ -593,9 +630,30 @@ public final class Bank {
                                         // s-ar putea sa trebuiasca alta conversie
                                         ((BusinessAccount) currentAccount).addTotalSpent(amountToBePayed);
                                         if (businessAccount.isManager(email)) {
-                                            businessAccount.recordManagerSpending(getNameByEmail(email), amountToBePayed);
+                                            for (Commerciant com : getCommerciants()) {
+                                                if (com.getName().equals(commerciant) && !com.getManagerList().contains(name)) {
+                                                    com.getManagerList().add(name);
+                                                }
+                                            }
+                                            if (!businessAccount.getOutOrderForReportManager().contains(name)) {
+                                                businessAccount.getOutOrderForReportManager().add(name);
+                                            }
+                                            businessAccount.recordManagerSpending(name, amountToBePayed);
                                         } else if (businessAccount.isEmployee(email)) {
-                                            businessAccount.recordEmployeeSpending(getNameByEmail(email), amountToBePayed);
+                                            for (Commerciant com : getCommerciants()) {
+                                                if (com.getName().equals(commerciant) && !com.getEmployeeList().contains(name)) {
+                                                    com.getEmployeeList().add(name);
+                                                }
+                                            }
+                                            if (!businessAccount.getOutOrderForReportEmployee().contains(name)) {
+                                                businessAccount.getOutOrderForReportEmployee().add(name);
+                                            }
+                                            businessAccount.recordEmployeeSpending(name, amountToBePayed);
+                                        }
+                                    }
+                                    for (Commerciant com : getCommerciants()) {
+                                        if (com.getName().equals(commerciant)) {
+                                            com.setBusinessMoneySpent(com.getBusinessMoneySpent() + amountToBePayed);
                                         }
                                     }
                                     currentAccount.addCommerciantTransaction();
@@ -625,13 +683,16 @@ public final class Bank {
         int timestamp = input.getTimestamp();
         String ibanClassicAccount = " ";
         String userEmail = " ";
+        double comision = 0;
         int accountFound = 0;
         int typeIsSavings = 0;
         int hasMoney = 0;
         double amountToPay = 0;
 
         if (amount == 0) {
-            return; // nu retragi nimic
+            // nu retragi nimic
+            System.out.println("amount = 0");
+            return;
         }
 
         for (User user : users) {
@@ -641,7 +702,8 @@ public final class Bank {
                     userEmail = user.getEmail();
                     String to = currentAccount.getCurrency();
                     amountToPay = getMoneyConverter().convert(amount, from, to);
-                    if (amountToPay <= currentAccount.getBalance()) {
+                    double ronSpent = getMoneyConverter().convert(amount, from, "RON");
+                    if (amountToPay<= currentAccount.getBalance()) {
                         hasMoney = 1;
                     }
                     if (currentAccount.getType().equals("savings")) {
@@ -656,32 +718,58 @@ public final class Bank {
             }
         }
         if (accountFound == 0) {
+            System.out.println(" nu exista contul cu ibanul dat");
             return;
         }
+
+        getOut:
         for (User user : users) {
             if (user.getEmail().equals(userEmail)) {
                 for (Account currentAccount : user.getAccounts()) {
                     if (currentAccount.getType().equals("classic")
-                        && currentAccount.getCurrency().equals(from)) {
+                            && currentAccount.getCurrency().equals(from)) {
                         ibanClassicAccount = currentAccount.getIban();
+                        break getOut;
                     }
-                    if (ibanClassicAccount.equals(" ")) {
-                        user.addErrorTransaction(timestamp, "You do not have a classic account.");
-                        return; // account is not classic or wrong currency
+                }
+            }
+        }
+
+        if (ibanClassicAccount.equals(" ")) {
+            for (User user : users) {
+                if (user.getEmail().equals(userEmail)) {
+                    user.addErrorTransaction(timestamp, "You do not have a classic account.");
+                    return;
+                }
+            }
+        }
+
+        getOut2:
+        for (User user : users) {
+            if (user.getEmail().equals(userEmail)) {
+                for (Account currentAccount : user.getAccounts()) {
+                    if (currentAccount.getIban().equals(ibanClassicAccount)) {
+                        if (typeIsSavings == 0) {
+                            System.out.println("contu dat nu e de tip savings");
+                            return; // given account is not of type savings
+                        }
+                        if (hasMoney == 0) {
+                            System.out.println("nu are destui bani in contu de savings la time: "+timestamp);
+                            return;
+                        }
+                        currentAccount.addMoney(amount);
+                        user.addSavingsWithdrawalTransaction(timestamp, "Savings withdrawal",
+                                amount, ibanClassicAccount, iban);
+                        break getOut2;
                     }
-                    if (typeIsSavings == 0) {
-                        return; // given account is not of type savings
-                    }
-                    if (hasMoney == 0) {
-                        return;
-                    }
-                    currentAccount.addMoney(amount);
                 }
             }
         }
         for (User user : users) {
             for (Account currentAccount : user.getAccounts()) {
                 if (currentAccount.getIban().equals(iban)) {
+                    user.addSavingsWithdrawalTransaction(timestamp, "Savings withdrawal",
+                            amount, ibanClassicAccount, iban);
                     currentAccount.subtractMoney(amountToPay);
                 }
             }
@@ -704,6 +792,15 @@ public final class Bank {
         for (User user : users) {
             if (user.getEmail().equals(email)) {
                 userFound = 1;
+            }
+        }
+        if (userFound == 0) {
+            out.printError(timestamp, "cashWithdrawal", "User not found");
+            return;
+        }
+
+        for (User user : users) {
+            if (user.getEmail().equals(email)) {
                 for (Account currentAccount : user.getAccounts()) {
                     for (Card currentCard : currentAccount.getCards()) {
                         if (currentCard.getCardNumber().equals(cardNr)) {
@@ -730,11 +827,8 @@ public final class Bank {
                 }
             }
         }
-
         if (cardFound == 0) {
             out.printError(timestamp, "cashWithdrawal", "Card not found");
-        } else if (userFound == 0) {
-            out.printError(timestamp, "cashWithdrawal", "User not found");
         }
     }
 
@@ -747,7 +841,7 @@ public final class Bank {
         getActivePayments().add(new SplitPayment(input));
     }
 
-    public void acceptSplitPayment(final CommandInput input) {
+    public void acceptSplitPayment(final CommandInput input, final ConverterJson out) {
         String email = input.getEmail();
         int timestamp = input.getTimestamp();
         boolean found = false;
@@ -760,12 +854,11 @@ public final class Bank {
             }
         }
         if (!found) {
-            // user not found
-            System.out.println("nu are split paymenturi active emailu dat");
+            out.printError(timestamp, "acceptSplitPayment", "User not found");
         }
     }
 
-    public void rejectSplitPayment(final CommandInput input) {
+    public void rejectSplitPayment(final CommandInput input, final ConverterJson out) {
         String email = input.getEmail();
         int timestamp = input.getTimestamp();
         boolean found = false;
@@ -779,8 +872,7 @@ public final class Bank {
             }
         }
         if (!found) {
-            // user not found
-            System.out.println("nu are split paymenturi active emailu dat");
+            out.printError(timestamp, "rejectSplitPayment", "User not found");
         }
     }
 
@@ -801,10 +893,14 @@ public final class Bank {
         int commerciantSpendingThreshold = 0;
         int hasMoney = 1;
         int found = 0;
+        int ibanIsValid = 0;
         String from = "RON"; // initialization but always  modifies before use
 
         if (amount == 0) {
             return 0; // nu retragi nimic
+        }
+        if (iban.contains("POO")) {
+            ibanIsValid = 1;
         }
 
         for (User user : users) {
@@ -815,7 +911,23 @@ public final class Bank {
                 }
             }
         }
-        if (receiverExists == 1) {
+
+        for (Commerciant commerciant : commerciants) {
+            if (commerciant.getIban().equals(ibanReceiver)) {
+                receiverExists = 1;
+                break;
+            }
+        }
+
+        for (User user : users) {
+            for (Account currentAccount : user.getAccounts()) {
+                if (currentAccount.getIban().equals(iban)) {
+                    found = 1;
+                    break;
+                }
+            }
+        }
+        if (receiverExists == 1 && found == 1) {
 
             for (Commerciant commerciant : commerciants) {
                 if (commerciant.getIban().equals(ibanReceiver)) {
@@ -830,7 +942,6 @@ public final class Bank {
             for (User user : users) {
                 for (Account currentAccount : user.getAccounts()) {
                     if (currentAccount.getIban().equals(iban)) {
-                        found = 1;
                         from = currentAccount.getCurrency();
                         double ronSpent = getMoneyConverter().convert(amount, from, "RON");
                         double commision = user.checkCommision(amount, ronSpent);
@@ -840,6 +951,7 @@ public final class Bank {
                             hasMoney = 0;
                         }
                         if (hasMoney == 1) {
+                            int planUpgrade = 0;
                             if (receiverIsCommerciant == 0) {
                                 currentAccount.subtractMoney(amount + commision);
                             } else {
@@ -850,11 +962,21 @@ public final class Bank {
                                         getCommerciants(), amount, user.getPlan(), currentAccount);
                                 currentAccount.subtractMoney(cashback + commision);
                                 currentAccount.addCommerciantTransaction();
+                                if (ronSpent >= 300) {
+                                    user.add300RonPayment();
+                                }
+                                if (user.getRon300Payment() >= 5 && user.getPlan().equals("silver")) {
+                                    user.setPlan("gold");
+                                    planUpgrade = 1;
+                                }
                                 // S-ar putea sa nu trebuiasca / sa fie alta tranzactie pt send money -> comerciant
-                                user.addCardPaymentTransaction(timestamp, amount, commerciantName,
-                                                                currentAccount.getIban());
+                                //user.addCardPaymentTransaction(timestamp, amount, commerciantName,
+                                //                                currentAccount.getIban());
                             }
                             user.addMoneyTransferTransaction(input, "sent", from, amount);
+                            if (planUpgrade == 1) {
+                                user.addUpgradePlanTransaction(timestamp, currentAccount.getIban(), "gold");
+                            }
                         }
                     }
                 }
@@ -863,7 +985,7 @@ public final class Bank {
                 for (Account currentAccount : user.getAccounts()) {
                     if (currentAccount.getIban().equals(ibanReceiver)) {
                         String to = currentAccount.getCurrency();
-                        if (found == 1 && hasMoney == 1) {
+                        if (hasMoney == 1) {
                             double amountToBePayed = getMoneyConverter().convert(amount, from, to);
                             currentAccount.addMoney(amountToBePayed);
                             user.addMoneyTransferTransaction(input,
@@ -873,8 +995,7 @@ public final class Bank {
                     }
                 }
             }
-        }
-        if (found == 0) {
+        } else if (ibanIsValid == 1) {
             out.printError(timestamp, "sendMoney", "User not found");
         }
         return 0;
@@ -972,7 +1093,7 @@ public final class Bank {
                             && input.getCommand().equals("spendingsReport")) {
                         out.spendingsReportError(input.getTimestamp());
                     } else {
-                        out.createReport(user.getTransactions(), getUsers(), input, currentAccount, type);
+                        out.createReport(user.getTransactions(), getCommerciants(), input, currentAccount, type);
                     }
                     return 1;
                 }

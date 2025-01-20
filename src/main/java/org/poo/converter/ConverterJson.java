@@ -3,6 +3,7 @@ package org.poo.converter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.poo.commerciants.Commerciant;
 import org.poo.fileio.CommandInput;
 import org.poo.bank.Bank;
 import org.poo.users.BusinessAccount;
@@ -13,10 +14,7 @@ import org.poo.users.transactions.CardPayment;
 import org.poo.users.transactions.Transaction;
 import org.poo.converter.CurrencyConverter;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * The type Converter json.
@@ -196,7 +194,7 @@ public final class ConverterJson {
      * @param account      the account
      * @param type         the type
      */
-    public void createReport(final ArrayList<Transaction> transactions, final ArrayList<User> users,
+    public void createReport(final ArrayList<Transaction> transactions, final ArrayList<Commerciant> commerciants,
                              final CommandInput input, final Account account, final String type) {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode txt = mapper.createObjectNode();
@@ -267,61 +265,71 @@ public final class ConverterJson {
         if (type.equals("business")) {
             BusinessAccount business = (BusinessAccount) account;
 
-            txt2.put("deposit limit", business.getConvertedDepositLimit());
+            txt2.put("deposit limit", business.getDepositLimit());
             txt2.put("spending limit", business.getSpendingLimit());
             txt2.put("statistics type", input.getType());
-            txt2.put("total deposited", business.getTotalDeposited());
-            txt2.put("total spent", business.getTotalSpent());
 
-            ArrayNode managersNode = mapper.createArrayNode();
-            for (String managerName : business.getManagerDeposits().keySet()) {
-                ObjectNode managerNode = mapper.createObjectNode();
-                managerNode.put("username", managerName);
-                managerNode.put("deposited", business.getManagerDeposits().get(managerName));
-                managerNode.put("spent", business.getManagerSpending().get(managerName));
-                managersNode.add(managerNode);
-            }
-            for (String managerEmail : business.getManagerEmails()) {
-                String managerName = "not found";
-                for (User user : users) {
-                    if (managerEmail.equals(user.getEmail())) {
-                        managerName = user.getLastName() + " " + user.getFirstName();
+            if (input.getType().equals("transaction")) {
+                txt2.put("total deposited", business.getTotalDeposited());
+                txt2.put("total spent", business.getTotalSpent());
+
+                ArrayNode managersNode = mapper.createArrayNode();
+
+                for (String managerEmail : business.getManagerEmails()) {
+                    String managerName = Bank.getNameByEmail(managerEmail);
+                    if ((business.getManagerDeposits().get(managerName) != null
+                        && business.getManagerDeposits().get(managerName) != 0)
+                        ||(business.getManagerSpending().get(managerName) != null
+                        && business.getManagerSpending().get(managerName) != 0)) {
+                        ObjectNode managerNode = mapper.createObjectNode();
+                        managerNode.put("username", managerName);
+                        managerNode.put("deposited", business.getManagerDeposits().getOrDefault(managerName, 0.0));
+                        managerNode.put("spent", business.getManagerSpending().getOrDefault(managerName, 0.0));
+                        managersNode.add(managerNode);
                     }
                 }
-                if (!business.getManagerDeposits().containsKey(managerName)) {
-                    ObjectNode managerNode = mapper.createObjectNode();
-                    managerNode.put("username", managerName);
-                    managerNode.put("deposited", 0.0);
-                    managerNode.put("spent", 0.0);
-                    managersNode.add(managerNode);
-                }
-            }
-            txt2.set("managers", managersNode);
-
-            ArrayNode employeesNode = mapper.createArrayNode();
-            for (String employeeName : business.getEmployeeDeposits().keySet()) {
-                ObjectNode employeeNode = mapper.createObjectNode();
-                employeeNode.put("username", employeeName);
-                employeeNode.put("deposited", business.getEmployeeDeposits().get(employeeName));
-                employeeNode.put("spent", business.getEmployeeSpending().get(employeeName));
-                employeesNode.add(employeeNode);
-            }
-            for (String employeeEmail : business.getEmployeeEmails()) {
-                String employeeName = "not found";
-                for (User user : users) {
-                    if (employeeEmail.equals(user.getEmail())) {
-                        employeeName = user.getLastName() + " " + user.getFirstName();
+                for (String managerEmail : business.getManagerEmails()) {
+                    String managerName = Bank.getNameByEmail(managerEmail);
+                    if (!business.getOutOrderForReportManager().contains(managerName)) {
+                        ObjectNode managerNode = mapper.createObjectNode();
+                        managerNode.put("username", managerName);
+                        managerNode.put("deposited", 0.0);
+                        managerNode.put("spent", 0.0);
+                        managersNode.add(managerNode);
                     }
                 }
-                if (!business.getEmployeeDeposits().containsKey(employeeName)) {
-                    ObjectNode employeeNode = mapper.createObjectNode();
-                    employeeNode.put("username", employeeName);
-                    employeeNode.put("deposited", 0.0);
-                    employeeNode.put("spent", 0.0);
-                    employeesNode.add(employeeNode);
+                txt2.set("managers", managersNode);
+
+                ArrayNode employeesNode = mapper.createArrayNode();
+
+                for (String employeeEmail : business.getEmployeeEmails()) {
+                    String employeeName = Bank.getNameByEmail(employeeEmail);
+                    if ((business.getEmployeeDeposits().get(employeeName) != null
+                            && business.getEmployeeDeposits().get(employeeName) != 0)
+                            ||(business.getEmployeeSpending().get(employeeName) != null
+                            && business.getEmployeeSpending().get(employeeName) != 0)) {
+                        ObjectNode employeeNode = mapper.createObjectNode();
+                        employeeNode.put("username", employeeName);
+                        employeeNode.put("deposited", business.getEmployeeDeposits().getOrDefault(employeeName, 0.0));
+                        employeeNode.put("spent", business.getEmployeeSpending().getOrDefault(employeeName, 0.0));
+                        employeesNode.add(employeeNode);
+                    }
                 }
+                for (String employeeEmail : business.getEmployeeEmails()) {
+                    String employeeName = Bank.getNameByEmail(employeeEmail);
+                    if (!business.getOutOrderForReportEmployee().contains(employeeName)) {
+                        ObjectNode employeeNode = mapper.createObjectNode();
+                        employeeNode.put("username", employeeName);
+                        employeeNode.put("deposited", 0.0);
+                        employeeNode.put("spent", 0.0);
+                        employeesNode.add(employeeNode);
+                    }
+                }
+                txt2.set("employees", employeesNode);
+            } else { // report type = commerciant
+                ArrayNode commerciantsNode = mapper.createArrayNode();
+                txt2.set("commerciants", commerciantsNode);
             }
-            txt2.set("employees", employeesNode);
         }
 
         txt.set("output", txt2);

@@ -16,6 +16,7 @@ public final class SplitPaymentFailed extends Transaction {
     private String poor;
     private String type;
     private double amount;
+    private int isRejected;
     private ArrayList<String> ibanList;
 
 
@@ -27,10 +28,11 @@ public final class SplitPaymentFailed extends Transaction {
      * @param fromIban the from iban
      */
     public SplitPaymentFailed(final CommandInput input, final String poor, final String fromIban,
-                              final ArrayList<Double> amountList, final String splitType, final double amount) {
+                              final ArrayList<Double> amountList, final String splitType,
+                              final double amount, final int isRejected) {
         super(input.getTimestamp(), "Split payment of "
                 + input.getAmount() + "0 " + input.getCurrency());
-        if (splitType.equals("custom")) {
+        if (splitType.equals("custom") && isRejected == 0) {
             this.setDescription("Split payment of "
                     + input.getAmount() + " " + input.getCurrency());
         }
@@ -39,6 +41,7 @@ public final class SplitPaymentFailed extends Transaction {
         this.poor = poor;
         this.type = splitType;
         this.amount = amount / input.getAccounts().size();
+        this.isRejected = isRejected;
         this.ibanList = (ArrayList<String>) input.getAccounts();
         setFromIban(fromIban);
     }
@@ -121,6 +124,14 @@ public final class SplitPaymentFailed extends Transaction {
         this.ibanList = ibanList;
     }
 
+    public int getIsRejected() {
+        return isRejected;
+    }
+
+    public void setIsRejected(int isRejected) {
+        this.isRejected = isRejected;
+    }
+
     @Override
     public ObjectNode toJson(final ObjectMapper mapper) {
         ObjectNode txt = mapper.createObjectNode();
@@ -141,8 +152,12 @@ public final class SplitPaymentFailed extends Transaction {
         txt.put("description", getDescription());
         txt.put("splitPaymentType", getType());
         txt.put("currency", getCurrency());
-        txt.put("error", "Account " + poor
-                + " has insufficient funds for a split payment.");
+        if (getIsRejected() == 0) {
+            txt.put("error", "Account " + poor
+                    + " has insufficient funds for a split payment.");
+        } else {
+            txt.put("error", "One user rejected the payment.");
+        }
         ArrayNode involvedAccounts = mapper.createArrayNode();
         for (String iban : ibanList) {
             involvedAccounts.add(iban);

@@ -7,25 +7,24 @@ public class BusinessAccount extends Account {
     private String ownerEmail;
     private ArrayList<String> managerEmails;
     private ArrayList<String> employeeEmails;
-//    private HashMap<String, Double> managerDeposits;
-//    private HashMap<String, Double> managerSpending;
-//    private HashMap<String, Double> employeeDeposits;
-//    private HashMap<String, Double> employeeSpending;
     private LinkedHashMap<String, Double> managerDeposits;
     private LinkedHashMap<String, Double> managerSpending;
     private LinkedHashMap<String, Double> employeeDeposits;
     private LinkedHashMap<String, Double> employeeSpending;
     private double spendingLimit = 500;
     private double depositLimit = 500;
-    private double convertedDepositLimit;
     private double totalDeposited = 0;
     private double totalSpent = 0;
+    private ArrayList<String> outOrderForReportManager;
+    private ArrayList<String> outOrderForReportEmployee;
 
     public BusinessAccount(final String currency, final String type, final String ownerEmail) {
         super(currency, type);
         this.ownerEmail = ownerEmail;
         this.employeeEmails = new ArrayList<>();
         this.managerEmails = new ArrayList<>();
+        this.outOrderForReportManager = new ArrayList<>();
+        this.outOrderForReportEmployee = new ArrayList<>();
         this.managerDeposits = new LinkedHashMap<>();
         this.managerSpending = new LinkedHashMap<>();
         this.employeeDeposits = new LinkedHashMap<>();
@@ -70,14 +69,6 @@ public class BusinessAccount extends Account {
 
     public void setDepositLimit(double depositLimit) {
         this.depositLimit = depositLimit;
-    }
-
-    public double getConvertedDepositLimit() {
-        return convertedDepositLimit;
-    }
-
-    public void setConvertedDepositLimit(double convertedDepositLimit) {
-        this.convertedDepositLimit = convertedDepositLimit;
     }
 
     public double getTotalDeposited() {
@@ -128,6 +119,22 @@ public class BusinessAccount extends Account {
         this.employeeSpending = employeeSpending;
     }
 
+    public ArrayList<String> getOutOrderForReportManager() {
+        return outOrderForReportManager;
+    }
+
+    public void setOutOrderForReportManager(ArrayList<String> outOrderForReportManager) {
+        this.outOrderForReportManager = outOrderForReportManager;
+    }
+
+    public ArrayList<String> getOutOrderForReportEmployee() {
+        return outOrderForReportEmployee;
+    }
+
+    public void setOutOrderForReportEmployee(ArrayList<String> outOrderForReportEmployee) {
+        this.outOrderForReportEmployee = outOrderForReportEmployee;
+    }
+
     public void recordManagerDeposit(String name, double amount) {
         managerDeposits.put(name, managerDeposits.getOrDefault(name, 0.0) + amount);
     }
@@ -141,7 +148,9 @@ public class BusinessAccount extends Account {
     }
 
     public void recordEmployeeSpending(String name, double amount) {
+        System.out.println(amount);
         employeeSpending.put(name, employeeSpending.getOrDefault(name, 0.0) + amount);
+        System.out.println(employeeSpending.get(name));
     }
 
     public void addTotalSpent(double amount) {

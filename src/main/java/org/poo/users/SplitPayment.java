@@ -119,6 +119,19 @@ public class SplitPayment {
                 }
             }
         }
+        if (getIsRejected()) {
+            for (int i = 0; i < getIbanList().size(); i++) {
+                String currentIban = getIbanList().get(i);
+                for (User user : users) {
+                    for (Account currentAccount : user.getAccounts()) {
+                        if (currentAccount.getIban().equals(currentIban)) {
+                            user.addSplitPaymentFailedTransaction(getInput(), getPoor(),
+                                    getType(), currentIban, getAmountList(), getTotalAmount(), 1);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void checkCompletion(ArrayList<User> users, CurrencyConverter converter) {
@@ -158,7 +171,7 @@ public class SplitPayment {
                 for (Account currentAccount : user.getAccounts()) {
                     if (currentAccount.getIban().equals(currentIban) && !getPoor().equals("nobody")) {
                         user.addSplitPaymentFailedTransaction(getInput(), getPoor(),
-                                getType(), currentIban, getAmountList(), getTotalAmount());
+                                getType(), currentIban, getAmountList(), getTotalAmount(), 0);
                     }
                 }
             }
