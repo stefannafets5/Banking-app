@@ -314,9 +314,7 @@ public class BusinessAccount extends Account {
      * @param amount the amount
      */
     public void recordEmployeeSpending(final String name, final double amount) {
-        System.out.println(amount);
         employeeSpending.put(name, employeeSpending.getOrDefault(name, 0.0) + amount);
-        System.out.println(employeeSpending.get(name));
     }
 
     /**
