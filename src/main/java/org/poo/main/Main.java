@@ -23,18 +23,11 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Objects;
 
-/**
- * The entry point to this homework. It runs the checker that tests your implementation.
- */
 public final class Main {
-    /**
-     * for coding style
-     */
     private Main() {
     }
 
     /**
-     * DO NOT MODIFY MAIN METHOD
      * Call the checker
      *
      * @param args from command line
