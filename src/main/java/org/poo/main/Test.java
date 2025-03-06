@@ -11,9 +11,6 @@ import java.util.Scanner;
  * Use this if you want to test on a specific input file
  */
 public final class Test {
-    /**
-     * for coding style
-     */
     private Test() {
     }
 
